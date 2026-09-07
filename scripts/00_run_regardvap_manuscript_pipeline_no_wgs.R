@@ -560,18 +560,6 @@ assert_file_exists(analysis_wide_path, "Longitudinal analysis panel")
 
 message_block("Collecting manuscript-structured outputs...")
 
-# 3.1 需要找danny看一下内容
-#write_section_readme(
-#  file.path(section_dirs[["sec31"]], "README_3.1.md"),
-# c(
-#   "# 3.1 Study population and baseline characteristics",
-#    "",
-#    "- Baseline section intentionally left blank in this version.",
-#    "- You asked to fill the baseline part later after we review Danny's code.",
-#    "- No baseline table is exported by the current manuscript pipeline run."
-#  )
-#)
-
 # 3.2
 make_figure1_svg(file.path(section_dirs[["sec32"]], "figure1_timeline.svg"))
 make_figure2_svg(file.path(section_dirs[["sec32"]], "figure2_dag.svg"))
