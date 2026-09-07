@@ -877,10 +877,12 @@ lt_complete_tab <- as.data.frame(with(severity, table(day, lt_complete, useNA = 
 
 source(file.path(module_dir, "R", "04_gformula_engine.R"))
 source(file.path(module_dir, "R", "05_sensitivity_runner.R"))
+source(file.path(module_dir, "R", "06_monte_carlo_diagnostics.R"))
 
-main_gf <- run_gformula(analysis, mediator_history = "lagged", lt_variant = "main", include_ot = FALSE, nsim = 4000)
+main_gf <- run_gformula(analysis, mediator_history = "lagged", lt_variant = "main", include_ot = FALSE, horizon = 3L, nsim = 4000)
 table3 <- main_gf[, c("n_complete", "R_1_G1", "R_1_G0", "R_0_G0", "TE", "IDE", "IIE")]
 table4 <- run_prespecified_sensitivities(analysis, nsim = 4000)
+mc_stability <- run_monte_carlo_stability(analysis, nsim = 4000L)
 write_cohort_diagnostics(panel, analysis, step_dirs[["step00"]])
 write_observed_trajectory_diagnostics(panel, step_dirs[["step02"]])
 write_positivity_diagnostics(analysis, step_dirs[["step03"]])
@@ -909,6 +911,7 @@ utils::write.csv(figure3_sum, file.path(step_dirs[["step02"]], "figure3_daywise_
 
 utils::write.csv(table3, file.path(step_dirs[["step03"]], "table3_main_gformula_estimates.csv"), row.names = FALSE)
 utils::write.csv(table4, file.path(step_dirs[["step04"]], "table4_sensitivity_analyses.csv"), row.names = FALSE)
+utils::write.csv(mc_stability, file.path(step_dirs[["step03"]], "diagnostic_monte_carlo_stability.csv"), row.names = FALSE)
 
 notes <- c(
   "# REGARD-VAP longitudinal mediation pipeline v3",
@@ -918,7 +921,8 @@ notes <- c(
   "- step01_baseline: baseline Table 1 style summary by baseline carbapenem resistance",
   "- step02_longitudinal_summary: Day 0-3 observed treatment, severity, and O_t information summary",
   "- step03_main_gformula: primary interventional direct and indirect effect estimates",
-  "- step04_sensitivity: alternative L_t definition, no-lag mediator history, and optional O_t-adjusted model",
+  "- step04_sensitivity: alternative L_t definition, no-lag mediator history, exploratory O_t-adjusted model, and Day 0-1 early-treatment window",
+  "- step03_main_gformula/diagnostic_monte_carlo_stability.csv: repeated-seed Monte Carlo stability check for the primary specification",
   "- step05_hte: reserved for future heterogeneity analyses; no results are generated",
   "",
   "Variable system used in this v3 draft:",

@@ -471,11 +471,15 @@ make_pretty_table3 <- function(input_csv, out_dir) {
 make_pretty_table4 <- function(input_csv, out_dir) {
   df <- read.csv(input_csv, stringsAsFactors = FALSE, check.names = FALSE)
 
-  df$Specification <- ifelse(
-    df$include_ot,
-    "Main L_t + O_t",
-    ifelse(df$lt_variant == "alt", "Alternative L_t", ifelse(df$mediator_history == "none", "No lagged mediator history", "Main specification"))
-  )
+  df$Specification <- if (all(c("sensitivity_id", "description") %in% names(df))) {
+    paste0(df$sensitivity_id, ": ", df$description)
+  } else {
+    ifelse(
+      df$include_ot,
+      "Main L_t + O_t",
+      ifelse(df$lt_variant == "alt", "Alternative L_t", ifelse(df$mediator_history == "none", "No lagged mediator history", "Main specification"))
+    )
+  }
 
   display_df <- data.frame(
     Specification = df$Specification,
@@ -496,7 +500,7 @@ make_pretty_table4 <- function(input_csv, out_dir) {
     gt::gt(rowname_col = "Specification") |>
     gt::tab_header(
       title = gt::md("**Table 4. Sensitivity analyses for the longitudinal g-formula**"),
-      subtitle = "Alternative severity, mediator-history, and O_t specifications."
+      subtitle = "Alternative severity, mediator-history, microbiology-information, and early-window specifications."
     ) |>
     gt::tab_spanner(
       label = "Model diagnostics",
@@ -513,7 +517,7 @@ make_pretty_table4 <- function(input_csv, out_dir) {
     gt::cols_align(align = "center", columns = everything()) |>
     gt::tab_source_note(
       source_note = gt::md(
-        "`Main L_t + O_t` includes the microbiology-information term; `Alternative L_t` uses the alternative severity definition; `No lagged mediator history` removes the lagged treatment history from the mediator model."
+        "S1 changes the daily severity definition; S2 removes lagged mediator history; S3 includes the exploratory microbiology-information proxy; S4 restricts the mediator process to the early Day 0--1 window."
       )
     ) |>
     gt::tab_style(
