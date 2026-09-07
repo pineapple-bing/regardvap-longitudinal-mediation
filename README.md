@@ -1,63 +1,215 @@
-# REGARD-VAP: longitudinal mediation of carbapenem resistance and mortality
+<p align="center">
+  <strong>REGARD-VAP</strong><br>
+  <em>Longitudinal mediation analysis of carbapenem resistance, appropriate treatment, and 60-day mortality</em>
+</p>
 
-This is the codebase for the REGARD-VAP clinical longitudinal-mediation study,
-not a generic mediation template. It reconstructs the v3 pipeline into a
-manuscript-facing workflow with its figures and tables preserved.
+---
 
-## Clinical question
+# REGARD-VAP analysis guide
 
-Among eligible VAP episodes, what is the total effect of baseline carbapenem
-resistance (`A`) on 60-day mortality (`Y`), and what component is mediated by
-the Day 0--3 sequence of appropriate active treatment (`M0`--`M3`)?
+## Introduction
 
-The model uses daily clinical severity (`L_t`) and pre-decision microbiology
-information (`O_t`) as time-varying history. The primary estimand is an
-interventional direct/indirect-effect decomposition from a longitudinal
-g-formula.
+This repository contains the reproducible clinical-analysis workflow for the
+REGARD-VAP longitudinal mediation study. The study asks whether the association
+between baseline carbapenem resistance and 60-day mortality is partly explained
+by the daily sequence of receiving appropriate active antibiotic treatment.
 
-## Repository map
+The repository is deliberately organised as a step-by-step guide. Every
+analysis section states its input data, its analytic purpose, the expected
+outputs, and the interpretation boundary. The structure is inspired by the
+transparent organisation of the public ACORN-HAI analysis repository, while the
+causal model, variables, and estimand are specific to REGARD-VAP.
+
+## Study question and estimand
+
+Among eligible VAP episodes, estimate the total effect of baseline carbapenem
+resistance (`A`) on death by Day 60 (`Y`) and decompose it into an
+interventional direct effect (IDE) and an interventional indirect effect (IIE)
+through appropriate active treatment on Day 0--3 (`M0`--`M3`).
+
+The daily causal ordering is:
 
 ```text
-data/                              # documentation only; no participant data
-scripts/                           # one reproducible manuscript runner
-01_study_population_and_baseline/  # cohort definition, source audit, Table 1
-02_longitudinal_trajectories/      # timeline, DAG, Table 2, trajectory figure
-03_longitudinal_mediation_analysis/# v3 clinical g-formula; Tables 3--4, Figure 4
-04_heterogeneity_of_treatment_effect/ # reserved; no results yet
-docs/                              # analysis plan, code map, decisions
-outputs/                           # local only and git-ignored
+Baseline V, A ──► L0, O0 ──► M0 ──► L1, O1 ──► M1 ──► L2, O2 ──► M2 ──► L3, O3 ──► M3 ──► Y
 ```
 
-The central executable is
-`scripts/00_run_regardvap_manuscript_pipeline_no_wgs.R`. It calls the
-complete v3 clinical longitudinal-mediation code in
+`L_t` is clinical severity measured before the day-t treatment decision and
+`O_t` is microbiology information available before that decision. This is an
+interventional longitudinal-mediation analysis, not a conventional single-time
+point mediation model.
+
+## Repository structure
+
+```text
+data/                                  # data dictionary and local-data instructions only
+scripts/                               # one reproducible manuscript runner
+01_study_population_and_baseline/      # source audit, eligibility, cohort flow, Table 1
+02_longitudinal_trajectories/          # timeline, DAG, Table 2, observed trajectories
+03_longitudinal_mediation_analysis/    # longitudinal g-formula, Tables 3--4, Figure 4
+04_heterogeneity_of_treatment_effect/  # reserved; no analysis is run yet
+docs/                                  # analysis decisions, code map, collaboration handoff
+outputs/                               # generated locally; never committed
+```
+
+## Before you run anything
+
+### Software
+
+Install a current version of R and the packages used by the scripts:
+
+```r
+install.packages(c("readxl", "ggplot2", "gt"))
+```
+
+### Local data layout
+
+Participant-level files are **not** stored in this repository. In an approved
+local location, keep the following sources unchanged:
+
+```text
+regardvap_patient_day0_day3_integrated_longitudinal_itt460_v.xlsx
+regardvap_patient_day0_day60_integrated_longitudinal_itt460_.xlsx
+regardvap_primary_severity_L0_L3_itt460.xlsx
+itt.dataset.RDS
+```
+
+Do not upload any of these files to GitHub. Do not rename a source file without
+updating the run command and recording the change in the data-source audit.
+
+### Run the full clinical workflow
+
+From the repository root, run:
+
+```bash
+Rscript scripts/00_run_regardvap_manuscript_pipeline_no_wgs.R \
+  /approved/path/day0_day3.xlsx \
+  /approved/path/day0_day60.xlsx \
+  /approved/path/severity.xlsx \
+  /approved/path/itt.dataset.RDS \
+  /approved/path/outputs/regardvap_manuscript_run
+```
+
+The runner creates four numbered output directories. Sections 1--3 contain
+analysis outputs; Section 4 only records that HTE is not yet run.
+
+---
+
+## Step-by-step analysis guide
+
+### Step 1. Study population and baseline characteristics
+
+**Folder:** `01_study_population_and_baseline/`
+
+**Purpose:** Establish the eligible analytic cohort before any causal model is
+fitted. Audit the four source files, confirm unique participant identifiers,
+check the Day 0--3 observation structure, and document missingness and
+censoring.
+
+**Key outputs:**
+
+- source-data audit;
+- long and wide analysis-panel files (local only);
+- cohort-flow and censoring summaries; and
+- Table 1 baseline characteristics by `A`.
+
+**Interpretation rule:** In the current extract `A=0` includes
+culture-negative/non-evaluable episodes. It must not be labelled “carbapenem
+susceptible” unless the population is restricted to confirmed susceptible
+index isolates.
+
+See [Step 1 guide](01_study_population_and_baseline/README.md).
+
+### Step 2. Longitudinal trajectories
+
+**Folder:** `02_longitudinal_trajectories/`
+
+**Purpose:** Describe, rather than causally estimate, the observed Day 0--3
+clinical pathway. This section makes the temporal assumptions visible before
+the g-formula is interpreted.
+
+**Key outputs:**
+
+- Figure 1: measurement timeline;
+- Figure 2: longitudinal DAG;
+- Table 2: daily severity, treatment and microbiology-information summaries;
+- Figure 3: observed treatment/severity trajectories; and
+- a trajectory-distribution table for model checking.
+
+See [Step 2 guide](02_longitudinal_trajectories/README.md).
+
+### Step 3. Longitudinal mediation analysis
+
+**Folder:** `03_longitudinal_mediation_analysis/`
+
+**Purpose:** Estimate counterfactual risks under three regimes:
+
+```text
+R(1, G1): A = resistant; mediator process drawn under A = resistant
+R(1, G0): A = resistant; mediator process drawn under A = non-resistant
+R(0, G0): A = non-resistant; mediator process drawn under A = non-resistant
+```
+
+The effect decomposition is:
+
+```text
+TE  = R(1, G1) - R(0, G0)
+IDE = R(1, G0) - R(0, G0)
+IIE = R(1, G1) - R(1, G0)
+```
+
+**Core executable:**
 `03_longitudinal_mediation_analysis/01_run_regardvap_longitudinal_mediation_v3_no_wgs.R`
-and creates manuscript-facing output sections:
 
-1. Study population and baseline characteristics
-2. Longitudinal trajectories (timeline, DAG, Table 2, Figure 3)
-3. Longitudinal mediation analysis (Table 3, Table 4, Figure 4)
-4. Heterogeneity of treatment effect (future work only)
+**Key outputs:**
 
-## WGS policy
+- Table 3: counterfactual risks, total effect, IDE and IIE;
+- Table 4: prespecified sensitivity analyses; and
+- Figure 4: risk and effect-decomposition display.
 
-All simulated WGS/plasmid/carbapenemase fields have been removed from the
-clinical pipeline and from HTE. The current repository does not execute a WGS
-analysis. A future real *Pseudomonas aeruginosa* WGS substudy must be rebuilt
-from the verified real dataset in a separate, explicitly labelled module.
+The Step 3 guide separates the g-formula into data construction, nuisance
+models, simulation, diagnostics, uncertainty, and sensitivity analyses so that
+the large v3 script can be audited rather than treated as a black box.
 
-## Safety
+See [Step 3 guide](03_longitudinal_mediation_analysis/README.md).
 
-No participant-level data, raw WGS files, simulation fields, generated tables,
-figures, PowerPoint files, or Word documents are versioned. Copy
-`config.example.R` to a local ignored `config.R` before running.
+### Step 4. Heterogeneity of treatment effect
 
-## Important current methods notes
+**Folder:** `04_heterogeneity_of_treatment_effect/`
 
-- `baseline_appropriateabx_on_symptomdate` is excluded from adjustment because
-  it nearly duplicates `M0` in the current extract.
-- The `A=0` group includes culture-negative episodes. It must not be called
-  “carbapenem susceptible” unless eligibility is restricted to confirmed
-  susceptible index isolates.
-- The legacy v3 severity simulator is retained for reproducibility only; the
-  final analysis should constrain simulated severity to its feasible support.
+This is intentionally a placeholder. HTE will not be run until the primary
+population, time ordering, positivity diagnostics, outcome model, and bootstrap
+uncertainty have been finalised.
+
+---
+
+## Methods safeguards and current decisions
+
+1. **Do not adjust for `baseline_appropriateabx_on_symptomdate`.** It agrees
+   with `M0` for almost all observed episodes and is therefore a treatment/
+   mediator variable, not a baseline confounder.
+2. **No WGS in the clinical pipeline.** All simulated WGS, plasmid-cluster and
+   carbapenemase variables have been removed from the executable clinical code.
+   A real *Pseudomonas aeruginosa* WGS substudy, if pursued, must be separate
+   and labelled as such.
+3. **Do not call an exact 48-hour window from date-only data.** The current
+   descriptive endpoint is “appropriate active treatment by the end of Day 1”.
+4. **The legacy v3 severity simulation is retained for reproducibility, not as
+   the final model.** The final version should constrain simulated severity to
+   its feasible support and report observed-versus-simulated checks.
+5. **Uncertainty remains incomplete without a patient-level bootstrap.** The
+   current v3 core is a reproducible starting point, not a final reportable
+   causal analysis.
+
+## Working with Danny
+
+Before sending any data or results, use the
+[Danny handoff checklist](docs/danny_data_handoff.md). The appropriate package
+is a governance-approved clinical analysis extract plus data dictionary and
+specific review questions. Do **not** include simulated WGS fields, raw WGS,
+unapproved identifiers, or claim that the mediation estimates are final.
+
+## Reproducibility and support
+
+The repository contains code and documentation only. Generated outputs are
+local and ignored by Git. Record software versions, source-file dates, and any
+analytic deviation in `docs/` before a result is shared externally.
