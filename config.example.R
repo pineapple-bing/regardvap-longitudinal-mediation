@@ -10,3 +10,17 @@ output_dir <- "outputs"
 # "resistant_vs_susceptible" requires a verified susceptible index isolate and
 # excludes culture-negative or non-evaluable episodes.
 exposure_estimand <- "CHOOSE_BEFORE_ANALYSIS"
+
+# Column names in your authorised source files. Change only here when a source
+# extract changes, rather than editing multiple analysis scripts.
+id_var <- "subjid"
+day_var <- "day_from_day0"
+exposure_var <- "baseline_carba_r"
+mediator_var <- "treatment_any_appropriate_active_primary"
+severity_var <- "severity_lt"
+outcome_var <- "death_by_day60"
+
+# Do NOT add baseline_appropriateabx_on_symptomdate: it is essentially M0 in
+# the current data and is therefore a post-exposure treatment variable.
+baseline_covariates <- c("age", "sex", "country", "site", "baseline_bacteria_f")
+analysis_data_path <- "outputs/analysis_dataset.rds"

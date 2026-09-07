@@ -40,7 +40,25 @@ outputs, PowerPoint files, and Word documents are intentionally excluded.
 ## First checks
 
 1. Copy `config.example.R` to `config.R` and set authorised local paths.
-2. Run `Rscript scripts/01_validate_inputs.R config.R`.
+2. Run the scripts in numeric order, starting with
+   `Rscript 01_data_preparation/01_validate_inputs.R config.R`.
 3. Resolve every `FAIL` and review every `WARN` before model fitting.
 
 See `docs/analysis_plan.md` for the proposed primary and sensitivity analyses.
+
+## Project layout
+
+```
+01_data_preparation/     # validate inputs and build a person-level Day 0–3 panel
+02_descriptive_analysis/ # cohort flow and observed treatment summaries
+03_primary_analysis/     # locked analysis specification and modelling entry point
+04_sensitivity_analysis/ # prespecified alternatives, not post-hoc fishing
+05_figures/              # report tables and figures
+R/                        # small reusable helper functions
+data/                     # documentation only; no participant-level files
+outputs/                  # local derived data/tables/figures, ignored by git
+```
+
+The numbered folders mirror the transparent ACORN-HAI structure. Unlike its
+baseline-treatment analyses, this project preserves `L_t -> M_t -> L_(t+1) -> Y`
+for longitudinal mediation.
