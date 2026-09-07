@@ -867,12 +867,6 @@ main_gf <- run_gformula(analysis, mediator_history = "lagged", lt_variant = "mai
 sens1_gf <- run_gformula(analysis, mediator_history = "lagged", lt_variant = "alt", include_ot = FALSE, nsim = 4000)
 sens2_gf <- run_gformula(analysis, mediator_history = "none", lt_variant = "main", include_ot = FALSE, nsim = 4000)
 sens3_gf <- run_gformula(analysis, mediator_history = "lagged", lt_variant = "main", include_ot = TRUE, nsim = 4000)
-hte_results <- rbind(
-  run_hte_gformula(analysis, "severity_group", "Baseline severity"),
-  run_hte_gformula(analysis, "bacteria_simple", "Bacteria group"),
-  run_hte_gformula(analysis, "country_simple", "Country")
-)
-
 table3 <- main_gf[, c("n_complete", "R_1_G1", "R_1_G0", "R_0_G0", "TE", "IDE", "IIE")]
 table4 <- rbind(sens1_gf, sens2_gf, sens3_gf)
 
@@ -891,7 +885,6 @@ utils::write.csv(figure3_sum, file.path(step_dirs[["step02"]], "figure3_daywise_
 
 utils::write.csv(table3, file.path(step_dirs[["step03"]], "table3_main_gformula_estimates.csv"), row.names = FALSE)
 utils::write.csv(table4, file.path(step_dirs[["step04"]], "table4_sensitivity_analyses.csv"), row.names = FALSE)
-utils::write.csv(hte_results, file.path(step_dirs[["step05"]], "table5_hte_gformula_estimates.csv"), row.names = FALSE)
 
 notes <- c(
   "# REGARD-VAP longitudinal mediation pipeline v3",
@@ -902,7 +895,7 @@ notes <- c(
   "- step02_longitudinal_summary: Day 0-3 observed treatment, severity, and O_t information summary",
   "- step03_main_gformula: primary interventional direct and indirect effect estimates",
   "- step04_sensitivity: alternative L_t definition, no-lag mediator history, and optional O_t-adjusted model",
-  "- step05_hte: subgroup-specific exploratory g-formula estimates",
+  "- step05_hte: reserved for future heterogeneity analyses; no results are generated",
   "",
   "Variable system used in this v3 draft:",
   "- V = baseline covariates: age, sex, Charlson, country, site, ICU type, and bacteria group",
@@ -915,7 +908,7 @@ notes <- c(
   "Interpretation note:",
   "- The main model still matches your current binary A = 0/1 workflow.",
   "- The O_t piece is included as a draft data-structure extension inspired by the newer slide deck, but it should be reviewed before becoming the final manuscript model.",
-  "- HTE is exploratory and currently stratified by baseline severity, bacteria group, and country.",
+  "- Heterogeneity analyses are not run in this version.",
   "",
   "Inputs:",
   paste0("- Day 0-3 integrated longitudinal file: ", day03_path),

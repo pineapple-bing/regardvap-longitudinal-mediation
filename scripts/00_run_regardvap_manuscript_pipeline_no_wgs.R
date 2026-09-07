@@ -1,6 +1,6 @@
 args <- commandArgs(trailingOnly = TRUE)
 
-# Portable project root: this runner lives in 00_project_setup/.
+# Portable project root: this runner lives in scripts/.
 script_arg <- grep("^--file=", commandArgs(trailingOnly = FALSE), value = TRUE)
 if (length(script_arg) != 1L) stop("Run this file with Rscript.", call. = FALSE)
 project_root <- normalizePath(file.path(dirname(sub("^--file=", "", script_arg)), ".."), mustWork = TRUE)
@@ -36,7 +36,6 @@ section_dirs <- list(
 invisible(lapply(section_dirs, dir.create, recursive = TRUE, showWarnings = FALSE))
 
 analysis_core_dir <- file.path(section_dirs[["scratch"]], "longitudinal_core")
-hte_dir <- file.path(section_dirs[["scratch"]], "hte_interaction")
 
 message_block <- function(...) {
   cat(paste0(..., collapse = ""), "\n")
@@ -548,18 +547,12 @@ assert_file_exists(itt_rds_path, "ITT RDS file")
 
 message_block("Running longitudinal mediation core pipeline...")
 run_r_script(
-  file.path(project_root, "04_longitudinal_mediation", "01_run_regardvap_longitudinal_mediation_v3_no_wgs.R"),
+  file.path(project_root, "03_longitudinal_mediation_analysis", "01_run_regardvap_longitudinal_mediation_v3_no_wgs.R"),
   c(day03_path, day60_path, severity_path, itt_rds_path, analysis_core_dir)
 )
 
 analysis_wide_path <- file.path(analysis_core_dir, "step00_data_prep", "analysis_panel_wide_for_gformula.csv")
 assert_file_exists(analysis_wide_path, "Longitudinal analysis panel")
-
-message_block("Running interaction-model HTE pipeline...")
-run_r_script(
-  file.path(project_root, "06_heterogeneity_analyses", "01_run_hte_interaction_models.R"),
-  c(day03_path, day60_path, hte_dir)
-)
 
 message_block("Collecting manuscript-structured outputs...")
 
@@ -647,33 +640,13 @@ write_section_readme(
 )
 
 # 3.4
-copy_required(
-  file.path(analysis_core_dir, "step05_hte", "table5_hte_gformula_estimates.csv"),
-  file.path(section_dirs[["sec34"]], "table5_hte_gformula_estimates.csv")
-)
-hte_copy_targets <- c(
-  "table_hte_interaction_global_tests.csv",
-  "table_hte_interaction_sofa_curve.csv",
-  "table_hte_interaction_bacteria.csv",
-  "table_hte_interaction_country.csv",
-  "table_hte_interaction_balance_counts.csv",
-  "figure_hte_interaction_baseline_sofa.png",
-  "figure_hte_interaction_bacteria.png",
-  "figure_hte_interaction_country.png"
-)
-for (nm in hte_copy_targets) {
-  src <- file.path(hte_dir, nm)
-  if (file.exists(src)) {
-    copy_required(src, file.path(section_dirs[["sec34"]], nm))
-  }
-}
 write_section_readme(
   file.path(section_dirs[["sec34"]], "README_3.4.md"),
   c(
     "# 3.4 Heterogeneity of treatment effect",
     "",
-    "- Longitudinal g-formula subgroup table: table5_hte_gformula_estimates.csv",
-    "- Interaction-model outputs are copied here as sensitivity / supporting HTE analyses."
+    "- Reserved for future work.",
+    "- No HTE analyses are run or reported in this version."
   )
 )
 
@@ -690,7 +663,6 @@ write_section_readme(
     "",
     "Core analysis directories used internally:",
     paste0("- Longitudinal core: ", analysis_core_dir),
-    paste0("- HTE interaction: ", hte_dir),
     "",
     "Input files:",
     paste0("- Day 0-3: ", day03_path),

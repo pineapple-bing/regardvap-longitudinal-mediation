@@ -18,30 +18,26 @@ g-formula.
 ## Repository map
 
 ```text
-00_project_setup/                 # master manuscript runner and path setup
-01_data_preparation/              # source validation, panel construction, QC
-02_study_population_and_baseline/ # cohort flow and Table 1
-03_longitudinal_trajectories/     # timeline, DAG, Table 2, trajectory figure
-04_longitudinal_mediation/        # v3 g-formula core (no WGS/sim variables)
-05_sensitivity_analyses/          # alternative L_t, history, O_t, missingness
-06_heterogeneity_analyses/        # severity, organism, and country HTE only
-07_figures_and_tables/            # manuscript-ready display helpers
-R/                                # reusable functions
-data/                             # documentation only; no participant data
-docs/                             # analysis plan, code map, decisions
-outputs/                          # local only and git-ignored
+data/                              # documentation only; no participant data
+scripts/                           # one reproducible manuscript runner
+01_study_population_and_baseline/  # cohort definition, source audit, Table 1
+02_longitudinal_trajectories/      # timeline, DAG, Table 2, trajectory figure
+03_longitudinal_mediation_analysis/# v3 clinical g-formula; Tables 3--4, Figure 4
+04_heterogeneity_of_treatment_effect/ # reserved; no results yet
+docs/                              # analysis plan, code map, decisions
+outputs/                           # local only and git-ignored
 ```
 
 The central executable is
-`00_project_setup/00_run_regardvap_manuscript_pipeline_no_wgs.R`. It calls the
+`scripts/00_run_regardvap_manuscript_pipeline_no_wgs.R`. It calls the
 complete v3 clinical longitudinal-mediation code in
-`04_longitudinal_mediation/01_run_regardvap_longitudinal_mediation_v3_no_wgs.R`
+`03_longitudinal_mediation_analysis/01_run_regardvap_longitudinal_mediation_v3_no_wgs.R`
 and creates manuscript-facing output sections:
 
 1. Study population and baseline characteristics
 2. Longitudinal trajectories (timeline, DAG, Table 2, Figure 3)
 3. Longitudinal mediation analysis (Table 3, Table 4, Figure 4)
-4. Heterogeneity of treatment effect
+4. Heterogeneity of treatment effect (future work only)
 
 ## WGS policy
 
