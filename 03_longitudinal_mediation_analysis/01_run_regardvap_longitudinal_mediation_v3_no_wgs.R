@@ -600,7 +600,7 @@ make_figure3 <- function(panel_df, png_path, svg_path = NULL) {
   sum_df
 }
 
-run_gformula <- function(analysis_df, mediator_history = c("lagged", "none"), lt_variant = c("main", "alt"), include_ot = FALSE, nsim = 4000, seed = 20260903) {
+run_gformula_legacy <- function(analysis_df, mediator_history = c("lagged", "none"), lt_variant = c("main", "alt"), include_ot = FALSE, nsim = 4000, seed = 20260903) {
   mediator_history <- match.arg(mediator_history)
   lt_variant <- match.arg(lt_variant)
   set.seed(seed)
@@ -875,12 +875,12 @@ lt_qc <- stats::aggregate(
 )
 lt_complete_tab <- as.data.frame(with(severity, table(day, lt_complete, useNA = "ifany")))
 
+source(file.path(module_dir, "R", "04_gformula_engine.R"))
+source(file.path(module_dir, "R", "05_sensitivity_runner.R"))
+
 main_gf <- run_gformula(analysis, mediator_history = "lagged", lt_variant = "main", include_ot = FALSE, nsim = 4000)
-sens1_gf <- run_gformula(analysis, mediator_history = "lagged", lt_variant = "alt", include_ot = FALSE, nsim = 4000)
-sens2_gf <- run_gformula(analysis, mediator_history = "none", lt_variant = "main", include_ot = FALSE, nsim = 4000)
-sens3_gf <- run_gformula(analysis, mediator_history = "lagged", lt_variant = "main", include_ot = TRUE, nsim = 4000)
 table3 <- main_gf[, c("n_complete", "R_1_G1", "R_1_G0", "R_0_G0", "TE", "IDE", "IIE")]
-table4 <- rbind(sens1_gf, sens2_gf, sens3_gf)
+table4 <- run_prespecified_sensitivities(analysis, nsim = 4000)
 write_cohort_diagnostics(panel, analysis, step_dirs[["step00"]])
 write_observed_trajectory_diagnostics(panel, step_dirs[["step02"]])
 write_positivity_diagnostics(analysis, step_dirs[["step03"]])

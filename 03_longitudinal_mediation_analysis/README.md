@@ -16,6 +16,8 @@ guide makes its internal stages explicit.
 ├── R/01_analysis_contract.R      # blocks WGS/sim fields; checks person-day index
 ├── R/02_diagnostics.R            # daily and treatment-history positivity tables
 ├── R/03_bootstrap.R              # patient-level bootstrap and percentile intervals
+├── R/04_gformula_engine.R         # nuisance models and counterfactual simulation
+├── R/05_sensitivity_runner.R      # the three prespecified alternative specifications
 ├── A. Read, validate and harmonise approved clinical sources
 ├── B. Build Day 0--3 long and person-level wide panels
 ├── C. Describe observed baseline and longitudinal data
