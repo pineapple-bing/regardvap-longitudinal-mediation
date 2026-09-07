@@ -1,11 +1,11 @@
 <p align="center">
-  <strong>REGARD-VAP</strong><br>
+  <strong>MEDIATION</strong><br>
   <em>Longitudinal mediation analysis of carbapenem resistance, appropriate treatment, and 60-day mortality</em>
 </p>
 
 ---
 
-# REGARD-VAP analysis guide
+# MEDIATION analysis guide
 
 ## Introduction
 
