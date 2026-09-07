@@ -1,4 +1,4 @@
-# REGARD-VAP: Reproducible Longitudinal Mediation Analysis
+# README: MEDIATION Analysis Guide
 
 ## Introduction
 
