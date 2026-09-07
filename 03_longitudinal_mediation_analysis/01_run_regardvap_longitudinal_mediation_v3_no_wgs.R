@@ -9,6 +9,7 @@ source(file.path(project_root, "02_longitudinal_trajectories", "R", "01_observed
 source(file.path(module_dir, "R", "01_analysis_contract.R"))
 source(file.path(module_dir, "R", "02_diagnostics.R"))
 source(file.path(module_dir, "R", "03_bootstrap.R"))
+source(file.path(module_dir, "R", "07_complete_case_diagnostics.R"))
 
 suppressPackageStartupMessages({
   library(readxl)
@@ -170,7 +171,11 @@ fit_binomial_model <- function(formula, data) {
   separated <- !fit$converged ||
     any(grepl("probabilities numerically 0 or 1|did not converge", fit_warnings)) ||
     any(abs(stats::coef(fit)) > 20, na.rm = TRUE)
-  if (!separated) return(fit)
+  if (!separated) {
+    attr(fit, "fit_type") <- "glm_binomial"
+    attr(fit, "fit_warnings") <- unique(fit_warnings)
+    return(fit)
+  }
 
   if (!requireNamespace("glmnet", quietly = TRUE)) {
     stop(
@@ -193,7 +198,10 @@ fit_binomial_model <- function(formula, data) {
       xlevels = stats::.getXlevels(model_terms, model_frame),
       contrasts = attr(design, "contrasts"),
       design_columns = colnames(design),
-      outcome_mean = mean(outcome)
+      outcome_mean = mean(outcome),
+      fit_type = "ridge_binomial_glmnet",
+      lambda_1se = ridge_fit$lambda.1se,
+      trigger_warnings = unique(fit_warnings)
     ),
     class = "ridge_binomial_model"
   )
@@ -213,23 +221,35 @@ predict_binomial_prob <- function(model, newdata) {
       design <- cbind(design, matrix(0, nrow = nrow(design), ncol = length(missing_cols), dimnames = list(NULL, missing_cols)))
     }
     design <- design[, model$design_columns, drop = FALSE]
-    p <- as.numeric(stats::predict(model$fit, newx = design, s = "lambda.1se", type = "response"))
-    p[is.na(p)] <- model$outcome_mean
-    return(pmin(pmax(p, 0.001), 0.999))
+    raw_p <- as.numeric(stats::predict(model$fit, newx = design, s = "lambda.1se", type = "response"))
+    n_na <- sum(is.na(raw_p))
+    raw_p[is.na(raw_p)] <- model$outcome_mean
+    n_truncated <- sum(raw_p < 0.001 | raw_p > 0.999)
+    p <- pmin(pmax(raw_p, 0.001), 0.999)
+    attr(p, "prediction_diagnostics") <- c(n_na_prediction = n_na, n_probability_truncated = n_truncated)
+    return(p)
   }
-  p <- suppressWarnings(stats::predict(model, newdata = newdata, type = "response"))
-  p <- as.numeric(p)
-  p[is.na(p)] <- mean(model$y, na.rm = TRUE)
-  pmin(pmax(p, 0.001), 0.999)
+  raw_p <- as.numeric(suppressWarnings(stats::predict(model, newdata = newdata, type = "response")))
+  n_na <- sum(is.na(raw_p))
+  raw_p[is.na(raw_p)] <- mean(model$y, na.rm = TRUE)
+  n_truncated <- sum(raw_p < 0.001 | raw_p > 0.999)
+  p <- pmin(pmax(raw_p, 0.001), 0.999)
+  attr(p, "prediction_diagnostics") <- c(n_na_prediction = n_na, n_probability_truncated = n_truncated)
+  p
 }
 
-predict_gaussian_draw <- function(model, newdata) {
+predict_gaussian_draw <- function(model, newdata, lower = -Inf, upper = Inf) {
   mu <- suppressWarnings(stats::predict(model, newdata = newdata))
   mu <- as.numeric(mu)
+  n_na <- sum(is.na(mu))
   mu[is.na(mu)] <- mean(model$model[[1]], na.rm = TRUE)
   sigma <- summary(model)$sigma
   if (is.na(sigma) || sigma <= 0) sigma <- 0.25
-  stats::rnorm(nrow(newdata), mean = mu, sd = sigma)
+  draw <- stats::rnorm(nrow(newdata), mean = mu, sd = sigma)
+  n_truncated <- sum(draw < lower | draw > upper)
+  draw <- pmin(pmax(draw, lower), upper)
+  attr(draw, "prediction_diagnostics") <- c(n_na_prediction = n_na, n_support_truncated = n_truncated)
+  draw
 }
 
 estimate_risk <- function(sim_df) {
@@ -942,8 +962,12 @@ table3 <- main_gf[, c("n_complete", "R_1_G1", "R_1_G0", "R_0_G0", "TE", "IDE", "
 table4 <- run_prespecified_sensitivities(analysis, nsim = main_nsim)
 mc_stability <- run_monte_carlo_stability(analysis, nsim = main_nsim)
 write_cohort_diagnostics(panel, analysis, step_dirs[["step00"]])
+write_complete_case_diagnostics(analysis, step_dirs[["step03"]], horizon = 3L)
 write_observed_trajectory_diagnostics(panel, step_dirs[["step02"]])
 write_positivity_diagnostics(analysis, step_dirs[["step03"]])
+utils::write.csv(attr(main_gf, "nuisance_model_diagnostics"), file.path(step_dirs[["step03"]], "diagnostic_nuisance_model_types.csv"), row.names = FALSE)
+utils::write.csv(attr(main_gf, "conditional_positivity"), file.path(step_dirs[["step03"]], "diagnostic_conditional_positivity.csv"), row.names = FALSE)
+utils::write.csv(attr(main_gf, "prediction_diagnostics"), file.path(step_dirs[["step03"]], "diagnostic_prediction_fallbacks.csv"), row.names = FALSE)
 
 bootstrap_n <- suppressWarnings(as.integer(Sys.getenv("REGARDVAP_N_BOOT", unset = "0")))
 if (!is.na(bootstrap_n) && bootstrap_n > 0L) {
@@ -952,7 +976,23 @@ if (!is.na(bootstrap_n) && bootstrap_n > 0L) {
   bootstrap_results <- bootstrap_gformula(analysis, B = bootstrap_n, nsim = bootstrap_nsim)
   utils::write.csv(bootstrap_results, file.path(step_dirs[["step03"]], "bootstrap_effect_estimates.csv"), row.names = FALSE)
   utils::write.csv(bootstrap_percentile_ci(bootstrap_results), file.path(step_dirs[["step03"]], "bootstrap_percentile_ci.csv"), row.names = FALSE)
+  bootstrap_summary <- data.frame(
+    requested_resamples = bootstrap_n,
+    successful_resamples = sum(bootstrap_results$status == "ok"),
+    failed_resamples = sum(bootstrap_results$status != "ok"),
+    monte_carlo_draws_per_resample = bootstrap_nsim,
+    stringsAsFactors = FALSE
+  )
+} else {
+  bootstrap_summary <- data.frame(
+    requested_resamples = 0L,
+    successful_resamples = NA_integer_,
+    failed_resamples = NA_integer_,
+    monte_carlo_draws_per_resample = NA_integer_,
+    stringsAsFactors = FALSE
+  )
 }
+utils::write.csv(bootstrap_summary, file.path(step_dirs[["step03"]], "diagnostic_bootstrap_status.csv"), row.names = FALSE)
 
 utils::write.csv(panel, file.path(step_dirs[["step00"]], "analysis_panel_long_day0_day3.csv"), row.names = FALSE)
 utils::write.csv(analysis, file.path(step_dirs[["step00"]], "analysis_panel_wide_for_gformula.csv"), row.names = FALSE)

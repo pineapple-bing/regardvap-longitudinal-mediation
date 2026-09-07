@@ -80,31 +80,80 @@ run_gformula <- function(analysis_df, mediator_history = c("lagged", "none"), lt
   names(l_fits) <- as.character(seq_len(horizon))
   y_fit <- fit_binomial_model(y_formula, fit_df)
 
+  fit_type <- function(x) {
+    if (inherits(x, "ridge_binomial_model")) x$fit_type else attr(x, "fit_type")
+  }
+  lambda_1se <- function(x) {
+    if (inherits(x, "ridge_binomial_model")) x$lambda_1se else NA_real_
+  }
+  binomial_models <- c(m_fits, list(Y = y_fit))
+  nuisance_model_diagnostics <- data.frame(
+    model = names(binomial_models),
+    model_type = vapply(binomial_models, fit_type, character(1)),
+    lambda_1se = vapply(binomial_models, lambda_1se, numeric(1)),
+    n_fit = nrow(fit_df),
+    stringsAsFactors = FALSE
+  )
+  conditional_positivity <- do.call(rbind, lapply(days, function(t) {
+    p <- predict_binomial_prob(m_fits[[as.character(t)]], fit_df)
+    do.call(rbind, lapply(sort(unique(fit_df$A)), function(a) {
+      pa <- p[fit_df$A == a]
+      data.frame(day = t, A = a, n = length(pa), min_probability = min(pa), max_probability = max(pa),
+        n_below_0_01 = sum(pa < 0.01), n_above_0_99 = sum(pa > 0.99), stringsAsFactors = FALSE)
+    }))
+  }))
+
   base_cols <- unique(c(covars, "L0", ot_terms))
   sim_base <- fit_df[rep(seq_len(nrow(fit_df)), length.out = nsim), base_cols, drop = FALSE]
 
+  prediction_log <- list()
+  record_prediction <- function(x, model, regime, diagnostic_type) {
+    d <- attr(x, "prediction_diagnostics")
+    if (is.null(d)) return(invisible(NULL))
+    prediction_log[[length(prediction_log) + 1L]] <<- data.frame(
+      regime = regime, model = model, diagnostic_type = diagnostic_type,
+      n_na_prediction = unname(d["n_na_prediction"]),
+      n_truncated = unname(d[grep("truncated", names(d))[1]]),
+      stringsAsFactors = FALSE
+    )
+    invisible(NULL)
+  }
+
   simulate_regime <- function(a_for_y, a_for_m) {
+    regime <- paste0("R(", a_for_y, ",G", a_for_m, ")")
     sim <- sim_base
     sim$A <- a_for_y
     for (t in days) {
       m_dat <- sim
       m_dat$A <- a_for_m
       m_fit <- m_fits[[as.character(t)]]
-      sim[[paste0("M", t)]] <- stats::rbinom(nrow(sim), 1, predict_binomial_prob(m_fit, m_dat))
-      if (t < horizon) sim[[paste0("L", t + 1)]] <- predict_gaussian_draw(l_fits[[as.character(t + 1)]], sim)
+      p_m <- predict_binomial_prob(m_fit, m_dat)
+      record_prediction(p_m, paste0("M", t), regime, "probability")
+      sim[[paste0("M", t)]] <- stats::rbinom(nrow(sim), 1, p_m)
+      if (t < horizon) {
+        l_draw <- predict_gaussian_draw(l_fits[[as.character(t + 1)]], sim, lower = 0, upper = 11)
+        record_prediction(l_draw, paste0("L", t + 1), regime, "severity_support")
+        sim[[paste0("L", t + 1)]] <- l_draw
+      }
     }
     y_dat <- sim
     y_dat$A <- a_for_y
-    sim$Y <- stats::rbinom(nrow(sim), 1, predict_binomial_prob(y_fit, y_dat))
+    p_y <- predict_binomial_prob(y_fit, y_dat)
+    record_prediction(p_y, "Y", regime, "probability")
+    sim$Y <- stats::rbinom(nrow(sim), 1, p_y)
     sim
   }
 
   r11 <- estimate_risk(simulate_regime(1, 1))
   r10 <- estimate_risk(simulate_regime(1, 0))
   r00 <- estimate_risk(simulate_regime(0, 0))
-  data.frame(lt_variant = lt_variant, mediator_history = mediator_history,
+  result <- data.frame(lt_variant = lt_variant, mediator_history = mediator_history,
     include_ot = include_ot, horizon = horizon, nsim = nsim, n_complete = nrow(fit_df),
     active_covars = paste(covars, collapse = ";"), dropped_covars = paste(pruned$drop, collapse = ";"),
     R_1_G1 = r11, R_1_G0 = r10, R_0_G0 = r00, TE = r11 - r00,
     IDE = r10 - r00, IIE = r11 - r10, stringsAsFactors = FALSE)
+  attr(result, "nuisance_model_diagnostics") <- nuisance_model_diagnostics
+  attr(result, "conditional_positivity") <- conditional_positivity
+  attr(result, "prediction_diagnostics") <- do.call(rbind, prediction_log)
+  result
 }
