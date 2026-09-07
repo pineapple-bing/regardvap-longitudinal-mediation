@@ -1,0 +1,25 @@
+# Never commit participant-level or raw study data
+data/*
+!data/README.md
+*.RData
+*.rda
+*.rds
+*.csv
+*.xlsx
+*.xls
+*.sav
+*.dta
+
+# Generated results and local configuration
+outputs/*
+!outputs/.gitkeep
+config.R
+.Rhistory
+.RData
+.Rproj.user/
+.DS_Store
+
+# Presentation and manuscript exports are kept outside this code repository
+*.pptx
+*.docx
+*.pdf
