@@ -500,7 +500,7 @@ make_pretty_table4 <- function(input_csv, out_dir) {
     gt::gt(rowname_col = "Specification") |>
     gt::tab_header(
       title = gt::md("**Table 4. Sensitivity analyses for the longitudinal g-formula**"),
-      subtitle = "Alternative severity, mediator-history, microbiology-information, and early-window specifications."
+      subtitle = "Alternative severity, mediator-history, and early-window specifications."
     ) |>
     gt::tab_spanner(
       label = "Model diagnostics",
@@ -517,7 +517,7 @@ make_pretty_table4 <- function(input_csv, out_dir) {
     gt::cols_align(align = "center", columns = everything()) |>
     gt::tab_source_note(
       source_note = gt::md(
-        "S1 changes the daily severity definition; S2 removes lagged mediator history; S3 includes the exploratory microbiology-information proxy; S4 restricts the mediator process to the early Day 0--1 window."
+        "S1 changes the daily severity definition; S2 removes lagged mediator history; S3 restricts the mediator process to the early Day 0--1 window. The microbiology-information proxy is not included because it is incomplete and its same-day availability requires separate timestamp validation."
       )
     ) |>
     gt::tab_style(

@@ -159,7 +159,44 @@ score_lt_from_components <- function(temp, map, hr, inotrope, mech_vent, spo2fio
 }
 
 fit_binomial_model <- function(formula, data) {
-  glm(formula, data = data, family = stats::binomial())
+  fit_warnings <- character(0)
+  fit <- withCallingHandlers(
+    stats::glm(formula, data = data, family = stats::binomial()),
+    warning = function(w) {
+      fit_warnings <<- c(fit_warnings, conditionMessage(w))
+      invokeRestart("muffleWarning")
+    }
+  )
+  separated <- !fit$converged ||
+    any(grepl("probabilities numerically 0 or 1|did not converge", fit_warnings)) ||
+    any(abs(stats::coef(fit)) > 20, na.rm = TRUE)
+  if (!separated) return(fit)
+
+  if (!requireNamespace("glmnet", quietly = TRUE)) {
+    stop(
+      "A binomial nuisance model showed separation. Install glmnet to use the ridge-penalized fallback: install.packages('glmnet').",
+      call. = FALSE
+    )
+  }
+  model_terms <- stats::delete.response(stats::terms(formula, data = data))
+  model_frame <- stats::model.frame(model_terms, data = data, na.action = stats::na.fail)
+  outcome <- stats::model.response(stats::model.frame(stats::terms(formula, data = data), data = data, na.action = stats::na.fail))
+  design <- stats::model.matrix(model_terms, model_frame)
+  design <- design[, colnames(design) != "(Intercept)", drop = FALSE]
+  nfolds <- min(5L, min(table(outcome)))
+  if (nfolds < 2L) stop("Cannot fit ridge fallback: outcome has fewer than two observations in one level.", call. = FALSE)
+  ridge_fit <- glmnet::cv.glmnet(design, outcome, family = "binomial", alpha = 0, nfolds = nfolds, type.measure = "deviance")
+  structure(
+    list(
+      fit = ridge_fit,
+      terms = model_terms,
+      xlevels = stats::.getXlevels(model_terms, model_frame),
+      contrasts = attr(design, "contrasts"),
+      design_columns = colnames(design),
+      outcome_mean = mean(outcome)
+    ),
+    class = "ridge_binomial_model"
+  )
 }
 
 fit_gaussian_model <- function(formula, data) {
@@ -167,6 +204,19 @@ fit_gaussian_model <- function(formula, data) {
 }
 
 predict_binomial_prob <- function(model, newdata) {
+  if (inherits(model, "ridge_binomial_model")) {
+    model_frame <- stats::model.frame(model$terms, newdata, xlev = model$xlevels, na.action = stats::na.pass)
+    design <- stats::model.matrix(model$terms, model_frame, contrasts.arg = model$contrasts)
+    design <- design[, colnames(design) != "(Intercept)", drop = FALSE]
+    missing_cols <- setdiff(model$design_columns, colnames(design))
+    if (length(missing_cols) > 0) {
+      design <- cbind(design, matrix(0, nrow = nrow(design), ncol = length(missing_cols), dimnames = list(NULL, missing_cols)))
+    }
+    design <- design[, model$design_columns, drop = FALSE]
+    p <- as.numeric(stats::predict(model$fit, newx = design, s = "lambda.1se", type = "response"))
+    p[is.na(p)] <- model$outcome_mean
+    return(pmin(pmax(p, 0.001), 0.999))
+  }
   p <- suppressWarnings(stats::predict(model, newdata = newdata, type = "response"))
   p <- as.numeric(p)
   p[is.na(p)] <- mean(model$y, na.rm = TRUE)
@@ -327,11 +377,12 @@ day03$O_info <- binary_any_micro_info(
 )
 day03$O_micro_carbR <- ifelse(day03$day == 0, day03$A, clean_binary01(day03$micro_any_carbapenem_R_lag1))
 
-day03$C <- ifelse(
+day03$R <- ifelse(
   is.na(day03$alive_at_start_of_day) | is.na(day03$under_followup_on_day),
   NA_real_,
-  ifelse(day03$alive_at_start_of_day == 1 & day03$under_followup_on_day == 1, 0, 1)
+  ifelse(day03$alive_at_start_of_day == 1 & day03$under_followup_on_day == 1, 1, 0)
 )
+day03$C <- ifelse(is.na(day03$R), NA_real_, 1 - day03$R)
 
 day03 <- day03[day03$day %in% 0:3, , drop = FALSE]
 
@@ -405,19 +456,20 @@ panel$bacteria_simple <- fill_missing_factor(ifelse(
 panel <- panel[!is.na(panel$subjid) & !is.na(panel$A), , drop = FALSE]
 panel <- panel[order(panel$subjid, panel$day), , drop = FALSE]
 validate_day_index(panel)
+assert_v3_complete_risk_set(panel)
 
-panel$M[panel$alive_at_start_of_day == 0 | panel$under_followup_on_day == 0] <- NA_real_
-panel$L_main[panel$alive_at_start_of_day == 0 | panel$under_followup_on_day == 0] <- NA_real_
-panel$L_alt[panel$alive_at_start_of_day == 0 | panel$under_followup_on_day == 0] <- NA_real_
-panel$O_info[panel$alive_at_start_of_day == 0 | panel$under_followup_on_day == 0] <- NA_real_
-panel$O_micro_carbR[panel$alive_at_start_of_day == 0 | panel$under_followup_on_day == 0] <- NA_real_
-panel$Y_day[panel$alive_at_start_of_day == 0 | panel$under_followup_on_day == 0] <- NA_real_
-panel$Y_day_incident[panel$alive_at_start_of_day == 0 | panel$under_followup_on_day == 0] <- NA_real_
+panel$M[panel$R == 0] <- NA_real_
+panel$L_main[panel$R == 0] <- NA_real_
+panel$L_alt[panel$R == 0] <- NA_real_
+panel$O_info[panel$R == 0] <- NA_real_
+panel$O_micro_carbR[panel$R == 0] <- NA_real_
+panel$Y_day[panel$R == 0] <- NA_real_
+panel$Y_day_incident[panel$R == 0] <- NA_real_
 
 patient_level <- panel[panel$day == 0, c("subjid", "Y", "age", "male", "charlson", "country", "site", "icu_type", "bacteria"), drop = FALSE]
 patient_level <- patient_level[!duplicated(patient_level$subjid), , drop = FALSE]
 
-wide_keep <- c("subjid", "day", "A", "C", "M", "L_main", "L_alt", "O_info", "O_micro_carbR", "Y_day", "Y_day_incident")
+wide_keep <- c("subjid", "day", "A", "R", "C", "M", "L_main", "L_alt", "O_info", "O_micro_carbR", "Y_day", "Y_day_incident")
 wide <- reshape(panel[, wide_keep], idvar = "subjid", timevar = "day", direction = "wide")
 names(wide) <- gsub("\\.", "", names(wide))
 analysis <- merge(wide, patient_level, by = "subjid", all.x = TRUE, sort = FALSE)
@@ -862,6 +914,7 @@ source_audit <- data.frame(
 
 censoring_summary <- data.frame(
   day = 0:3,
+  n_at_risk_at_start = sapply(0:3, function(d) sum(panel$R[panel$day == d] == 1, na.rm = TRUE)),
   n_censored_at_start = sapply(0:3, function(d) sum(panel$C[panel$day == d] == 1, na.rm = TRUE)),
   n_death_by_end_of_day = sapply(0:3, function(d) sum(panel$Y_day[panel$day == d] == 1, na.rm = TRUE)),
   n_micro_info_available = sapply(0:3, function(d) sum(panel$O_info[panel$day == d] == 1, na.rm = TRUE)),
@@ -879,10 +932,15 @@ source(file.path(module_dir, "R", "04_gformula_engine.R"))
 source(file.path(module_dir, "R", "05_sensitivity_runner.R"))
 source(file.path(module_dir, "R", "06_monte_carlo_diagnostics.R"))
 
-main_gf <- run_gformula(analysis, mediator_history = "lagged", lt_variant = "main", include_ot = FALSE, horizon = 3L, nsim = 4000)
+main_nsim <- suppressWarnings(as.integer(Sys.getenv("REGARDVAP_NSIM", unset = "50000")))
+if (is.na(main_nsim) || main_nsim < 10000L) {
+  stop("REGARDVAP_NSIM must be at least 10000 for the primary Monte Carlo analysis.", call. = FALSE)
+}
+
+main_gf <- run_gformula(analysis, mediator_history = "lagged", lt_variant = "main", include_ot = FALSE, horizon = 3L, nsim = main_nsim)
 table3 <- main_gf[, c("n_complete", "R_1_G1", "R_1_G0", "R_0_G0", "TE", "IDE", "IIE")]
-table4 <- run_prespecified_sensitivities(analysis, nsim = 4000)
-mc_stability <- run_monte_carlo_stability(analysis, nsim = 4000L)
+table4 <- run_prespecified_sensitivities(analysis, nsim = main_nsim)
+mc_stability <- run_monte_carlo_stability(analysis, nsim = main_nsim)
 write_cohort_diagnostics(panel, analysis, step_dirs[["step00"]])
 write_observed_trajectory_diagnostics(panel, step_dirs[["step02"]])
 write_positivity_diagnostics(analysis, step_dirs[["step03"]])
@@ -921,11 +979,13 @@ notes <- c(
   "- step01_baseline: baseline Table 1 style summary by baseline carbapenem resistance",
   "- step02_longitudinal_summary: Day 0-3 observed treatment, severity, and O_t information summary",
   "- step03_main_gformula: primary interventional direct and indirect effect estimates",
-  "- step04_sensitivity: alternative L_t definition, no-lag mediator history, exploratory O_t-adjusted model, and Day 0-1 early-treatment window",
+  paste0("- Primary and sensitivity Monte Carlo draws per regime: ", main_nsim),
+  "- step04_sensitivity: alternative L_t definition, no-lag mediator history, and Day 0-1 early-treatment window",
   "- step03_main_gformula/diagnostic_monte_carlo_stability.csv: repeated-seed Monte Carlo stability check for the primary specification",
   "- step05_hte: reserved for future heterogeneity analyses; no results are generated",
   "",
   "Variable system used in this v3 draft:",
+  "- R_t = alive and under follow-up at the beginning of day t; the present extract has R_t=1 for every Day 0-3 record.",
   "- V = baseline covariates: age, sex, Charlson, country, site, ICU type, and bacteria group",
   "- A = baseline carbapenem resistance",
   "- L_t = daily clinical state; primary model uses Day 0 SOFA plus Day 1-3 pragmatic LT score",
@@ -935,7 +995,7 @@ notes <- c(
   "",
   "Interpretation note:",
   "- The main model still matches your current binary A = 0/1 workflow.",
-  "- The O_t piece is included as a draft data-structure extension inspired by the newer slide deck, but it should be reviewed before becoming the final manuscript model.",
+  "- The O_t proxy is not included in the primary or sensitivity models because it is incomplete and its same-day availability requires timestamp validation.",
   "- Heterogeneity analyses are not run in this version.",
   "",
   "Inputs:",
