@@ -1,0 +1,4 @@
+"seed","lt_variant","mediator_history","include_ot","horizon","nsim","n_complete","active_covars","dropped_covars","R_1_G1","R_1_G0","R_0_G0","TE","IDE","IIE"
+20260911,"main","lagged",FALSE,3,50000,404,"age;male;charlson;country;site;icu_type;bacteria","",0.44764,0.44718,0.32742,0.12022,0.11976,0.00045999999999996
+20260912,"main","lagged",FALSE,3,50000,404,"age;male;charlson;country;site;icu_type;bacteria","",0.45106,0.44968,0.3263,0.12476,0.12338,0.00137999999999999
+20260913,"main","lagged",FALSE,3,50000,404,"age;male;charlson;country;site;icu_type;bacteria","",0.4497,0.44732,0.32678,0.12292,0.12054,0.00237999999999999

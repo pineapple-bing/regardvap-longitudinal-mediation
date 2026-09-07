@@ -1,0 +1,4 @@
+"sensitivity_id","description","lt_variant","mediator_history","include_ot","horizon","nsim","n_complete","active_covars","dropped_covars","R_1_G1","R_1_G0","R_0_G0","TE","IDE","IIE"
+"S1_alternative_severity","Alternative daily severity definition","alt","lagged",FALSE,3,50000,404,"age;male;charlson;country;site;icu_type;bacteria","",0.44972,0.45136,0.32622,0.1235,0.12514,-0.00163999999999997
+"S2_no_lagged_mediator_history","Mediator model without lagged mediator history","main","none",FALSE,3,50000,404,"age;male;charlson;country;site;icu_type;bacteria","",0.44462,0.4424,0.32858,0.11604,0.11382,0.00222
+"S3_early_treatment_window","Early treatment window through Day 1 only","main","lagged",FALSE,1,50000,408,"age;male;charlson;country;site;icu_type;bacteria","",0.43894,0.44218,0.32508,0.11386,0.1171,-0.00324000000000002
