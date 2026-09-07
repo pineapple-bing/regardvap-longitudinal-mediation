@@ -13,6 +13,9 @@ guide makes its internal stages explicit.
 
 ```text
 01_run_regardvap_longitudinal_mediation_v3_no_wgs.R
+├── R/01_analysis_contract.R      # blocks WGS/sim fields; checks person-day index
+├── R/02_diagnostics.R            # daily and treatment-history positivity tables
+├── R/03_bootstrap.R              # patient-level bootstrap and percentile intervals
 ├── A. Read, validate and harmonise approved clinical sources
 ├── B. Build Day 0--3 long and person-level wide panels
 ├── C. Describe observed baseline and longitudinal data
@@ -104,6 +107,22 @@ summaries. Before final reporting, add and review:
 - patient-level nonparametric bootstrap confidence intervals; and
 - sensitivity analysis for unmeasured mediator--outcome confounding.
 
+### Bootstrap execution
+
+Bootstrap code is now a separate executable module but is off by default,
+because a full run is computationally expensive. After checking one main run,
+set the desired number of patient-level resamples before running the master
+script:
+
+```bash
+export REGARDVAP_N_BOOT=500
+export REGARDVAP_BOOT_NSIM=4000
+```
+
+This writes successful/failed bootstrap draws and percentile intervals. The
+bootstrap repeats the entire fitting and simulation process within each
+resampled participant-level dataset.
+
 ## Outputs
 
 ```text
@@ -115,6 +134,10 @@ summaries. Before final reporting, add and review:
 ├── figure4_te_decomposition.png
 └── figure4_te_decomposition_data.csv
 ```
+
+The v3 clinical core also writes `diagnostic_positivity_by_day.csv` and
+`diagnostic_positivity_by_history.csv`. When enabled, bootstrap outputs are
+`bootstrap_effect_estimates.csv` and `bootstrap_percentile_ci.csv`.
 
 ## What this module does not do
 

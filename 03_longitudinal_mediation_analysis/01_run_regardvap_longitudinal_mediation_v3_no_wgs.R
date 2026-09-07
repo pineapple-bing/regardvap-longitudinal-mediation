@@ -1,5 +1,12 @@
 args <- commandArgs(trailingOnly = TRUE)
 
+script_arg <- grep("^--file=", commandArgs(trailingOnly = FALSE), value = TRUE)
+if (length(script_arg) != 1L) stop("Run this file with Rscript.", call. = FALSE)
+module_dir <- dirname(normalizePath(sub("^--file=", "", script_arg), mustWork = TRUE))
+source(file.path(module_dir, "R", "01_analysis_contract.R"))
+source(file.path(module_dir, "R", "02_diagnostics.R"))
+source(file.path(module_dir, "R", "03_bootstrap.R"))
+
 suppressPackageStartupMessages({
   library(readxl)
 })
@@ -394,6 +401,7 @@ panel$bacteria_simple <- fill_missing_factor(ifelse(
 
 panel <- panel[!is.na(panel$subjid) & !is.na(panel$A), , drop = FALSE]
 panel <- panel[order(panel$subjid, panel$day), , drop = FALSE]
+validate_day_index(panel)
 
 panel$M[panel$alive_at_start_of_day == 0 | panel$under_followup_on_day == 0] <- NA_real_
 panel$L_main[panel$alive_at_start_of_day == 0 | panel$under_followup_on_day == 0] <- NA_real_
@@ -439,6 +447,7 @@ analysis$O2 <- analysis$O_info2
 analysis$O3 <- analysis$O_info3
 
 analysis <- analysis[!is.na(analysis$A) & !is.na(analysis$Y), , drop = FALSE]
+assert_clinical_analysis_only(names(analysis))
 analysis$baseline_sofa_raw <- clean_num(analysis$L0)
 analysis$severity_group <- factor(ifelse(analysis$baseline_sofa_raw >= 6, "SOFA>=6", "SOFA<6"))
 analysis$country_simple <- fill_missing_factor(analysis$country)
@@ -869,6 +878,16 @@ sens2_gf <- run_gformula(analysis, mediator_history = "none", lt_variant = "main
 sens3_gf <- run_gformula(analysis, mediator_history = "lagged", lt_variant = "main", include_ot = TRUE, nsim = 4000)
 table3 <- main_gf[, c("n_complete", "R_1_G1", "R_1_G0", "R_0_G0", "TE", "IDE", "IIE")]
 table4 <- rbind(sens1_gf, sens2_gf, sens3_gf)
+write_positivity_diagnostics(analysis, step_dirs[["step03"]])
+
+bootstrap_n <- suppressWarnings(as.integer(Sys.getenv("REGARDVAP_N_BOOT", unset = "0")))
+if (!is.na(bootstrap_n) && bootstrap_n > 0L) {
+  bootstrap_nsim <- suppressWarnings(as.integer(Sys.getenv("REGARDVAP_BOOT_NSIM", unset = "4000")))
+  if (is.na(bootstrap_nsim) || bootstrap_nsim < 100L) bootstrap_nsim <- 4000L
+  bootstrap_results <- bootstrap_gformula(analysis, B = bootstrap_n, nsim = bootstrap_nsim)
+  utils::write.csv(bootstrap_results, file.path(step_dirs[["step03"]], "bootstrap_effect_estimates.csv"), row.names = FALSE)
+  utils::write.csv(bootstrap_percentile_ci(bootstrap_results), file.path(step_dirs[["step03"]], "bootstrap_percentile_ci.csv"), row.names = FALSE)
+}
 
 utils::write.csv(panel, file.path(step_dirs[["step00"]], "analysis_panel_long_day0_day3.csv"), row.names = FALSE)
 utils::write.csv(analysis, file.path(step_dirs[["step00"]], "analysis_panel_wide_for_gformula.csv"), row.names = FALSE)
