@@ -50,3 +50,6 @@ _scratch/longitudinal_core/step00_data_prep/
 Table 1 is descriptive. Do not use p-values in Table 1 as a criterion for
 confounder selection, and do not include baseline appropriate treatment because
 it is almost the same variable as `M0`.
+
+`R/01_cohort_diagnostics.R` is executed by the master workflow and writes an
+explicit cohort-flow diagnostic alongside the local analysis panel.

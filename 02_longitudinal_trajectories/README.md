@@ -49,3 +49,7 @@ Support   Distribution of observed treatment histories
 ├── figure3_observed_trajectories.png
 └── figure3_daywise_summary.csv
 ```
+
+`R/01_observed_trajectory_diagnostics.R` is executed by the master workflow and
+writes a transparent day-by-exposure diagnostic table used to verify Table 2
+and Figure 3 inputs.

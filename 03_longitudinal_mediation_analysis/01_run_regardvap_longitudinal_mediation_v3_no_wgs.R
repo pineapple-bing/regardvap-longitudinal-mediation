@@ -3,6 +3,9 @@ args <- commandArgs(trailingOnly = TRUE)
 script_arg <- grep("^--file=", commandArgs(trailingOnly = FALSE), value = TRUE)
 if (length(script_arg) != 1L) stop("Run this file with Rscript.", call. = FALSE)
 module_dir <- dirname(normalizePath(sub("^--file=", "", script_arg), mustWork = TRUE))
+project_root <- normalizePath(file.path(module_dir, ".."), mustWork = TRUE)
+source(file.path(project_root, "01_study_population_and_baseline", "R", "01_cohort_diagnostics.R"))
+source(file.path(project_root, "02_longitudinal_trajectories", "R", "01_observed_trajectory_diagnostics.R"))
 source(file.path(module_dir, "R", "01_analysis_contract.R"))
 source(file.path(module_dir, "R", "02_diagnostics.R"))
 source(file.path(module_dir, "R", "03_bootstrap.R"))
@@ -878,6 +881,8 @@ sens2_gf <- run_gformula(analysis, mediator_history = "none", lt_variant = "main
 sens3_gf <- run_gformula(analysis, mediator_history = "lagged", lt_variant = "main", include_ot = TRUE, nsim = 4000)
 table3 <- main_gf[, c("n_complete", "R_1_G1", "R_1_G0", "R_0_G0", "TE", "IDE", "IIE")]
 table4 <- rbind(sens1_gf, sens2_gf, sens3_gf)
+write_cohort_diagnostics(panel, analysis, step_dirs[["step00"]])
+write_observed_trajectory_diagnostics(panel, step_dirs[["step02"]])
 write_positivity_diagnostics(analysis, step_dirs[["step03"]])
 
 bootstrap_n <- suppressWarnings(as.integer(Sys.getenv("REGARDVAP_N_BOOT", unset = "0")))
