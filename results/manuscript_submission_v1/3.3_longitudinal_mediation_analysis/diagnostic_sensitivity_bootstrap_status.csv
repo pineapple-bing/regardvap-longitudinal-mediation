@@ -1,0 +1,16 @@
+"sensitivity_id","requested_resamples","successful_resamples","failed_resamples","monte_carlo_draws_per_resample"
+"PRIMARY",500,500,0,10000
+"S1_alternative_severity",500,500,0,10000
+"S2_transition_without_lagged_M",500,500,0,10000
+"S3_cumulative_treatment_outcome",500,500,0,10000
+"S4_ever_treated_outcome",500,500,0,10000
+"S5_early_treatment_window",500,500,0,10000
+"S6_culture_positive",500,500,0,10000
+"S7_major_pathogens",500,500,0,10000
+"S8_country_without_site",500,500,0,10000
+"S9_without_centre_indicators",500,500,0,10000
+"S10_probability_bounds_01",500,500,0,10000
+"S11_probability_bounds_025",500,500,0,10000
+"S12_marginal_exposure_support",500,500,0,10000
+"S13_joint_exposure_support",500,500,0,10000
+"S14_prior_day_severity_for_treatment",500,500,0,10000

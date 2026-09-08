@@ -1,0 +1,11 @@
+# Statistical analysis: longitudinal mediation and robustness analyses
+
+Interventional direct and indirect effects were estimated on the 60-day mortality risk-difference scale using a longitudinal parametric g-formula. Baseline carbapenem resistance was the exposure, daily appropriate active antibiotic treatment on Days 0–3 was the mediator process, and daily clinical severity was treated as a time-varying mediator–outcome confounder affected by prior treatment. Baseline models adjusted for age, sex, Charlson comorbidity score, study site, ICU type, and bacterial group. Country was not included simultaneously with site because the two were exactly nested in these data.
+
+The primary point estimate used 50,000 Monte Carlo draws per intervention regime. Uncertainty was quantified using 500 participant-level nonparametric bootstrap resamples; all nuisance models were re-estimated in every resample, with 10,000 Monte Carlo draws per regime. Two-sided 95% percentile confidence intervals are reported.
+
+Robustness analyses that retained the primary target population, mediator window, and effect definitions were reported separately from analyses that changed the mediator window or target population. The former examined alternative severity measurement, treatment-process and outcome-model specifications, centre adjustment, numerical probability bounds, and temporal ordering. The latter examined an early treatment window, culture-positive and major-pathogen populations, and populations with stronger observed exposure support. These analyses were treated as structured robustness analyses rather than independent confirmatory hypothesis tests.
+
+As a missing-data analysis, missing Day 1–3 severity values were imputed by predictive mean matching. The reported point estimate averaged estimates from 10 imputed datasets. Its confidence interval was obtained by repeating imputation and g-formula estimation within each of 500 participant-level bootstrap resamples (5 imputations per resample and 10,000 Monte Carlo draws per imputation).
+
+The supplied day-level files did not establish whether within-day clinical extrema preceded treatment administration. The primary same-day ordering therefore remains an identification assumption; a prior-day-severity treatment-model analysis was reported separately.

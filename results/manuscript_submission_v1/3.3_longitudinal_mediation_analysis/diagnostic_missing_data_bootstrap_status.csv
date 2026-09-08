@@ -1,0 +1,2 @@
+"sensitivity_id","requested_resamples","successful_resamples","failed_resamples","imputations_per_resample","monte_carlo_draws_per_imputation"
+"S15_multiple_imputation_severity",500,500,0,5,10000

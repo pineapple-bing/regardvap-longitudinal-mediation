@@ -1,6 +1,8 @@
 # Patient-level bootstrap for uncertainty around longitudinal g-formula effects.
 
-bootstrap_gformula <- function(analysis_df, B = 500L, nsim = 10000L, seed = 20260907L) {
+bootstrap_gformula <- function(
+    analysis_df, B = 500L, nsim = 10000L, seed = 20260907L,
+    checkpoint_path = NULL, progress_every = 25L) {
   if (!exists("run_gformula", mode = "function", inherits = TRUE)) {
     stop("Define run_gformula before calling bootstrap_gformula.", call. = FALSE)
   }
@@ -15,7 +17,16 @@ bootstrap_gformula <- function(analysis_df, B = 500L, nsim = 10000L, seed = 2026
     sample.int(n, size = n, replace = TRUE)
   })
   rows <- vector("list", B)
+  if (!is.null(checkpoint_path) && file.exists(checkpoint_path)) {
+    prior <- utils::read.csv(checkpoint_path, stringsAsFactors = FALSE)
+    required <- c("bootstrap_id", "status", "message", "R_1_G1", "R_1_G0", "R_0_G0", "TE", "IDE", "IIE")
+    if (!all(required %in% names(prior))) stop("Invalid primary-bootstrap checkpoint.", call. = FALSE)
+    prior <- prior[prior$bootstrap_id %in% seq_len(B), required, drop = FALSE]
+    for (b in unique(prior$bootstrap_id)) rows[[b]] <- prior[prior$bootstrap_id == b, , drop = FALSE][1, ]
+    message("Resuming primary bootstrap with ", sum(!vapply(rows, is.null, logical(1))), " of ", B, " resamples complete.")
+  }
   for (b in seq_len(B)) {
+    if (!is.null(rows[[b]])) next
     sampled <- analysis_df[bootstrap_indices[[b]], , drop = FALSE]
     fit <- tryCatch(
       run_gformula(sampled, mediator_history = "lagged", lt_variant = "main", include_ot = FALSE,
@@ -30,6 +41,11 @@ bootstrap_gformula <- function(analysis_df, B = 500L, nsim = 10000L, seed = 2026
       rows[[b]] <- data.frame(bootstrap_id = b, status = "ok", message = "",
         R_1_G1 = fit$R_1_G1, R_1_G0 = fit$R_1_G0, R_0_G0 = fit$R_0_G0,
         TE = fit$TE, IDE = fit$IDE, IIE = fit$IIE)
+    }
+    if (!is.null(checkpoint_path) && (b %% progress_every == 0L || b == B)) {
+      completed <- do.call(rbind, rows[!vapply(rows, is.null, logical(1))])
+      utils::write.csv(completed, checkpoint_path, row.names = FALSE)
+      message("Primary bootstrap: ", nrow(completed), "/", B, " resamples complete.")
     }
   }
   do.call(rbind, rows)

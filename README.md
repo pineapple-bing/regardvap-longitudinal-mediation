@@ -6,6 +6,12 @@ This repository contains the R workflow for the REGARD-VAP clinical longitudinal
 
 This README provides a step-by-step guide for running the available clinical workflow. It covers data preparation, study-population checks, observed longitudinal summaries, longitudinal g-formula estimation, and the currently implemented sensitivity analyses.
 
+The current de-identified manuscript-facing outputs are in
+`results/manuscript_submission_v1/`, organized as sections 3.1–3.4. These
+folders contain aggregate tables, figures, confidence intervals, diagnostics,
+run provenance, and methods text; participant-level analysis panels and
+individual propensity predictions are intentionally excluded.
+
 ---
 
 ## Step-by-Step Guide
@@ -85,6 +91,8 @@ The following files are written to `step00_data_prep/`:
 - `diagnostic_baseline_treatment_consistency.csv`: comparison of the symptom-day treatment field and Day 0 mediator.
 - `diagnostic_excel_import_warnings.csv`: grouped source-file type warnings.
 - `diagnostic_temporal_ordering_assumptions.csv`: status of the assumed `L_t`/`M_t` ordering.
+- `input_file_md5.csv`: input filenames and checksums used for the run.
+- `session_info.txt`: R, operating-system, and loaded-package versions.
 
 ---
 
@@ -163,23 +171,24 @@ The main analysis writes g-formula estimates and diagnostic tables to `step03_ma
 
 #### Sensitivity analyses
 
-The workflow writes the implemented sensitivity-analysis results to:
+The workflow separates robustness analyses according to whether they retain the
+primary estimand:
 
 ```text
-step04_sensitivity/table4_sensitivity_analyses.csv
+step04_sensitivity/table4_model_robustness_same_estimand.csv
+step04_sensitivity/table5_alternative_estimands_and_populations.csv
+step04_sensitivity/tableS_missing_data_sensitivity.csv
 ```
 
-The sensitivity runner covers distinct uncertainty domains rather than varying a
-single model switch: alternative severity measurement; treatment-process and
-outcome-model specifications; an early treatment-window estimand; restriction
-to culture-positive and major-pathogen populations; alternative country/site
-adjustment structures; probability-bound checks for near-positivity violations;
-restrictions to observed exposure-support populations; prior-day rather than
-same-day severity in treatment models; and multiple imputation of missing Day
-1--3 severity values. Each row reports
-whether it preserves the primary estimand, its input and complete-case sample
-sizes, the active covariates, status, and any failure message. Supporting files
-in `step04_sensitivity/` report exposure support and imputation-specific results.
+Table 4 contains the primary specification and model, measurement, centre,
+numerical-positivity, and temporal-ordering analyses that retain the primary
+target population and effect definitions. Table 5 contains analyses that change
+the mediator window or target population; these are not interpreted as direct
+replications of the primary estimand. The supplementary missing-data table
+contains the multiple-imputation analysis. A separate descriptive file reports
+the sample size, exposure counts, deaths, and observed mortality for every
+analysis population. Analysis-specific participant-level bootstrap intervals and
+bootstrap success/failure diagnostics are written alongside these tables.
 
 #### Bootstrap
 
@@ -189,6 +198,11 @@ the number of resamples or Monte Carlo simulations before starting the script:
 ```bash
 export REGARDVAP_N_BOOT=500
 export REGARDVAP_BOOT_NSIM=10000
+export REGARDVAP_SENS_N_BOOT=500
+export REGARDVAP_SENS_BOOT_NSIM=10000
+export REGARDVAP_MI_N_BOOT=500
+export REGARDVAP_MI_BOOT_M=5
+export REGARDVAP_MI_BOOT_NSIM=10000
 ```
 
 Set `REGARDVAP_N_BOOT=0` only for a quick development run. Such a run does not
@@ -199,12 +213,13 @@ bootstrap confidence intervals would be unreliable; centre structure is instead
 examined through prespecified country-only and no-centre-indicator adjustment
 analyses.
 
-Multiple imputation is enabled by default (`m=10`) as a missing-data sensitivity
-analysis. It can be configured with `REGARDVAP_MI_M` and
-`REGARDVAP_MI_NSIM`, or disabled for a development run with
-`REGARDVAP_RUN_MI=false`. The MI row is currently an average of the
-imputation-specific point estimates, not a Rubin-pooled confidence interval;
-the imputation-specific estimates and automatic predictor exclusions are saved
+Multiple imputation is enabled by default (`m=10`) as a missing-data analysis.
+It can be configured with `REGARDVAP_MI_M` and `REGARDVAP_MI_NSIM`, or disabled
+for a development run with `REGARDVAP_RUN_MI=false`. Its point estimate averages
+the imputation-specific g-formula estimates. Its percentile interval repeats
+imputation and g-formula estimation within each participant-level bootstrap
+resample, thereby propagating sampling, missing-data, and simulation uncertainty.
+The imputation-specific estimates and automatic predictor exclusions are saved
 for audit. Spreadsheet import warnings are grouped in
 `step00_data_prep/diagnostic_excel_import_warnings.csv` instead of being mixed
 with model-fitting warnings.

@@ -1,4 +1,4 @@
-# Prespecified robustness analyses for the longitudinal mediation model.
+# Structured robustness analyses for the longitudinal mediation model.
 #
 # A sensitivity analysis should target a specific source of uncertainty. This
 # runner records the analysis family, estimand status, population restriction,
@@ -122,6 +122,17 @@ make_sensitivity_specifications <- function() {
   )
 }
 
+make_primary_specification <- function() {
+  list(
+    id = "PRIMARY", family = "primary", same_estimand = TRUE,
+    description = "Primary longitudinal mediation specification", subset = "all",
+    mediator_history = "lagged", mediator_severity_timing = "same_day",
+    outcome_mediator_summary = "full_history", lt_variant = "main",
+    horizon = 3L, covariates = primary_covariates(),
+    probability_bounds = c(0.001, 0.999)
+  )
+}
+
 apply_sensitivity_subset <- function(analysis_df, subset_name) {
   bacteria <- as.character(analysis_df$bacteria)
   site <- as.character(analysis_df$site)
@@ -197,6 +208,124 @@ run_one_sensitivity <- function(analysis_df, spec, nsim, seed) {
     same_estimand_as_primary = spec$same_estimand, description = spec$description,
     subset = spec$subset, status = "ok", error_message = "", fit,
     stringsAsFactors = FALSE
+  )
+}
+
+bootstrap_sensitivity_analyses <- function(
+    analysis_df, specifications, B = 500L, nsim = 10000L,
+    seed = 20260907L, checkpoint_path = NULL, progress_every = 25L) {
+  B <- as.integer(B)
+  if (is.na(B) || B < 1L) stop("Sensitivity bootstrap B must be at least 1.", call. = FALSE)
+  if (length(specifications) < 1L) stop("No sensitivity specifications supplied.", call. = FALSE)
+
+  set.seed(seed)
+  n <- nrow(analysis_df)
+  bootstrap_indices <- lapply(seq_len(B), function(b) {
+    sample.int(n, size = n, replace = TRUE)
+  })
+
+  result <- data.frame()
+  if (!is.null(checkpoint_path) && file.exists(checkpoint_path)) {
+    result <- utils::read.csv(checkpoint_path, stringsAsFactors = FALSE)
+    required <- c("bootstrap_id", "sensitivity_id", "status", "error_message",
+      "R_1_G1", "R_1_G0", "R_0_G0", "TE", "IDE", "IIE")
+    if (!all(required %in% names(result))) stop("Invalid sensitivity-bootstrap checkpoint.", call. = FALSE)
+    result <- result[
+      result$bootstrap_id %in% seq_len(B) & result$sensitivity_id %in% vapply(specifications, `[[`, character(1), "id"),
+      required, drop = FALSE
+    ]
+  }
+  spec_ids <- vapply(specifications, `[[`, character(1), "id")
+  completed_ids <- unique(result$bootstrap_id[
+    vapply(result$bootstrap_id, function(b) {
+      setequal(result$sensitivity_id[result$bootstrap_id == b], spec_ids)
+    }, logical(1))
+  ])
+  if (length(completed_ids)) message("Resuming robustness bootstrap with ", length(completed_ids), " of ", B, " resamples complete.")
+  for (b in seq_len(B)) {
+    if (b %in% completed_ids) next
+    sampled <- analysis_df[bootstrap_indices[[b]], , drop = FALSE]
+    batch <- vector("list", length(specifications))
+    for (i in seq_along(specifications)) {
+      spec <- specifications[[i]]
+      fit <- run_one_sensitivity(sampled, spec, nsim = nsim,
+        seed = seed + b * 1000L + i)
+      batch[[i]] <- data.frame(
+        bootstrap_id = b, sensitivity_id = spec$id,
+        status = fit$status[1], error_message = fit$error_message[1],
+        R_1_G1 = fit$R_1_G1[1], R_1_G0 = fit$R_1_G0[1],
+        R_0_G0 = fit$R_0_G0[1], TE = fit$TE[1],
+        IDE = fit$IDE[1], IIE = fit$IIE[1], stringsAsFactors = FALSE
+      )
+    }
+    result <- rbind(result, do.call(rbind, batch))
+    if (!is.null(checkpoint_path) && (b %% progress_every == 0L || b == B)) {
+      utils::write.csv(result, checkpoint_path, row.names = FALSE)
+      message("Robustness bootstrap: ", length(unique(result$bootstrap_id)), "/", B, " resamples complete.")
+    }
+  }
+  result[order(result$bootstrap_id, match(result$sensitivity_id, spec_ids)), , drop = FALSE]
+}
+
+sensitivity_bootstrap_percentile_ci <- function(bootstrap_df) {
+  estimands <- c("R_1_G1", "R_1_G0", "R_0_G0", "TE", "IDE", "IIE")
+  ids <- unique(bootstrap_df$sensitivity_id)
+  rows <- lapply(ids, function(id) {
+    dat <- bootstrap_df[bootstrap_df$sensitivity_id == id, , drop = FALSE]
+    do.call(rbind, lapply(estimands, function(estimand) {
+      x <- dat[[estimand]][dat$status == "ok"]
+      x <- x[is.finite(x)]
+      interval <- if (length(x)) {
+        stats::quantile(x, c(0.025, 0.975), names = FALSE, na.rm = TRUE)
+      } else c(NA_real_, NA_real_)
+      data.frame(
+        sensitivity_id = id, estimand = estimand,
+        requested_resamples = length(unique(dat$bootstrap_id)),
+        successful_resamples = length(x),
+        lower_95 = interval[1], upper_95 = interval[2],
+        stringsAsFactors = FALSE
+      )
+    }))
+  })
+  do.call(rbind, rows)
+}
+
+attach_sensitivity_intervals <- function(estimates, ci_long) {
+  out <- estimates
+  estimands <- c("R_1_G1", "R_1_G0", "R_0_G0", "TE", "IDE", "IIE")
+  for (estimand in estimands) {
+    ci <- ci_long[ci_long$estimand == estimand, , drop = FALSE]
+    idx <- match(out$sensitivity_id, ci$sensitivity_id)
+    out[[paste0(estimand, "_lower_95")]] <- ci$lower_95[idx]
+    out[[paste0(estimand, "_upper_95")]] <- ci$upper_95[idx]
+    out[[paste0(estimand, "_bootstrap_success")]] <- ci$successful_resamples[idx]
+  }
+  out
+}
+
+make_population_description <- function(analysis_df, specifications) {
+  rows <- lapply(specifications, function(spec) {
+    dat <- apply_sensitivity_subset(analysis_df, spec$subset)
+    data.frame(
+      sensitivity_id = spec$id, analysis_family = spec$family,
+      population = spec$subset, n = nrow(dat),
+      n_A0 = sum(dat$A == 0, na.rm = TRUE),
+      n_A1 = sum(dat$A == 1, na.rm = TRUE),
+      deaths = sum(dat$Y == 1, na.rm = TRUE),
+      observed_mortality = mean(dat$Y, na.rm = TRUE),
+      stringsAsFactors = FALSE
+    )
+  })
+  do.call(rbind, rows)
+}
+
+primary_result_row <- function(main_fit) {
+  spec <- make_primary_specification()
+  cbind(
+    sensitivity_id = spec$id, analysis_family = spec$family,
+    same_estimand_as_primary = TRUE, description = spec$description,
+    subset = spec$subset, status = "ok", error_message = "",
+    main_fit, stringsAsFactors = FALSE
   )
 }
 
@@ -291,7 +420,68 @@ run_mi_severity_sensitivity <- function(analysis_df, m = 10L, maxit = 10L, nsim 
   )
 }
 
-run_prespecified_sensitivities <- function(
+bootstrap_mi_severity_sensitivity <- function(
+    analysis_df, B = 500L, m = 5L, maxit = 10L,
+    nsim = 10000L, seed = 20261907L,
+    checkpoint_path = NULL, progress_every = 25L) {
+  B <- as.integer(B)
+  if (is.na(B) || B < 1L) stop("MI bootstrap B must be at least 1.", call. = FALSE)
+  set.seed(seed)
+  n <- nrow(analysis_df)
+  bootstrap_indices <- lapply(seq_len(B), function(b) {
+    sample.int(n, size = n, replace = TRUE)
+  })
+  rows <- vector("list", B)
+  if (!is.null(checkpoint_path) && file.exists(checkpoint_path)) {
+    prior <- utils::read.csv(checkpoint_path, stringsAsFactors = FALSE)
+    required <- c("bootstrap_id", "sensitivity_id", "status", "error_message",
+      "R_1_G1", "R_1_G0", "R_0_G0", "TE", "IDE", "IIE")
+    if (!all(required %in% names(prior))) stop("Invalid MI-bootstrap checkpoint.", call. = FALSE)
+    prior <- prior[prior$bootstrap_id %in% seq_len(B), required, drop = FALSE]
+    for (b in unique(prior$bootstrap_id)) rows[[b]] <- prior[prior$bootstrap_id == b, , drop = FALSE][1, ]
+    message("Resuming MI bootstrap with ", sum(!vapply(rows, is.null, logical(1))), " of ", B, " resamples complete.")
+  }
+  for (b in seq_len(B)) {
+    if (!is.null(rows[[b]])) next
+    sampled <- analysis_df[bootstrap_indices[[b]], , drop = FALSE]
+    fit <- tryCatch(
+      run_mi_severity_sensitivity(
+        sampled, m = m, maxit = maxit, nsim = nsim,
+        seed = seed + b
+      ),
+      error = function(e) e
+    )
+    if (inherits(fit, "error")) {
+      rows[[b]] <- data.frame(
+        bootstrap_id = b, sensitivity_id = "S15_multiple_imputation_severity",
+        status = "failed", error_message = conditionMessage(fit),
+        R_1_G1 = NA_real_, R_1_G0 = NA_real_, R_0_G0 = NA_real_,
+        TE = NA_real_, IDE = NA_real_, IIE = NA_real_, stringsAsFactors = FALSE
+      )
+    } else {
+      smry <- fit$summary
+      ok <- smry$status[1] %in% c("ok", "partial_success")
+      rows[[b]] <- data.frame(
+        bootstrap_id = b, sensitivity_id = "S15_multiple_imputation_severity",
+        status = if (ok) "ok" else "failed", error_message = smry$error_message[1],
+        R_1_G1 = if (ok) smry$R_1_G1[1] else NA_real_,
+        R_1_G0 = if (ok) smry$R_1_G0[1] else NA_real_,
+        R_0_G0 = if (ok) smry$R_0_G0[1] else NA_real_,
+        TE = if (ok) smry$TE[1] else NA_real_,
+        IDE = if (ok) smry$IDE[1] else NA_real_,
+        IIE = if (ok) smry$IIE[1] else NA_real_, stringsAsFactors = FALSE
+      )
+    }
+    if (!is.null(checkpoint_path) && (b %% progress_every == 0L || b == B)) {
+      completed <- do.call(rbind, rows[!vapply(rows, is.null, logical(1))])
+      utils::write.csv(completed, checkpoint_path, row.names = FALSE)
+      message("MI bootstrap: ", nrow(completed), "/", B, " resamples complete.")
+    }
+  }
+  do.call(rbind, rows)
+}
+
+run_robustness_analyses <- function(
     analysis_df, nsim = 4000, seed = 20260903,
     run_multiple_imputation = TRUE, mi_m = 10L, mi_maxit = 10L,
     mi_nsim = min(nsim, 10000L)) {

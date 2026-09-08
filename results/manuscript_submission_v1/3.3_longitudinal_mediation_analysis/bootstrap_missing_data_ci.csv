@@ -1,0 +1,7 @@
+"sensitivity_id","estimand","requested_resamples","successful_resamples","lower_95","upper_95"
+"S15_multiple_imputation_severity","R_1_G1",500,500,0.354381532416711,0.542359301353742
+"S15_multiple_imputation_severity","R_1_G0",500,500,0.355061392397046,0.549134489552322
+"S15_multiple_imputation_severity","R_0_G0",500,500,0.279408091498708,0.407557107545448
+"S15_multiple_imputation_severity","TE",500,500,-0.0238702648928699,0.224367047490516
+"S15_multiple_imputation_severity","IDE",500,500,-0.0157633261099314,0.22337771057344
+"S15_multiple_imputation_severity","IIE",500,500,-0.0222001560797388,0.0183637476131726

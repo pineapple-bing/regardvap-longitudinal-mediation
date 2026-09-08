@@ -1,0 +1,33 @@
+R version 4.5.2 (2025-10-31)
+Platform: aarch64-apple-darwin20
+Running under: macOS Sequoia 15.7.1
+
+Matrix products: default
+BLAS:   /System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/libBLAS.dylib
+LAPACK: /Library/Frameworks/R.framework/Versions/4.5-arm64/Resources/lib/libRlapack.dylib;  LAPACK version 3.12.1
+
+locale:
+[1] C.UTF-8/C.UTF-8/C.UTF-8/C/C.UTF-8/C.UTF-8
+
+time zone: Asia/Singapore
+tzcode source: internal
+
+attached base packages:
+[1] stats     graphics  grDevices utils     datasets  methods   base
+
+other attached packages:
+[1] readxl_1.4.5
+
+loaded via a namespace (and not attached):
+ [1] Matrix_1.7-4     mitml_0.4-5      glmnet_4.1-10    dplyr_1.2.0
+ [5] compiler_4.5.2   rpart_4.1.24     tidyselect_1.2.1 Rcpp_1.1.0
+ [9] mice_3.19.0      tidyr_1.3.2      splines_4.5.2    boot_1.3-32
+[13] lattice_0.22-7   R6_2.6.1         generics_0.1.4   shape_1.4.6.1
+[17] pan_1.9          iterators_1.0.14 rbibutils_2.4    MASS_7.3-65
+[21] backports_1.5.0  tibble_3.3.0     nloptr_2.2.1     nnet_7.3-20
+[25] minqa_1.2.8      pillar_1.11.1    rlang_1.1.7      broom_1.0.11
+[29] cli_3.6.5        magrittr_2.0.4   Rdpack_2.6.4     jomo_2.7-6
+[33] foreach_1.5.2    grid_4.5.2       lme4_1.1-38      nlme_3.1-168
+[37] lifecycle_1.0.5  reformulas_0.4.3 vctrs_0.7.2      glue_1.8.0
+[41] cellranger_1.1.0 codetools_0.2-20 survival_3.8-3   purrr_1.2.0
+[45] tools_4.5.2      pkgconfig_2.0.3

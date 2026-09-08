@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="980" viewBox="0 0 1800 980">
+  <defs>
+    <style>
+      .paper { font-family: "Times New Roman", Times, serif; fill: #1f1f1f; }
+      .node { font-size: 38px; font-style: italic; }
+      .smallnode { font-size: 34px; font-style: italic; }
+      .caplead { font: 700 29px Arial, sans-serif; fill: #111; }
+      .captext { font: 400 27px Arial, sans-serif; fill: #111; }
+      .edge { stroke: #202020; stroke-width: 3.1; fill: none; marker-end: url(#arrow); }
+    </style>
+    <marker id="arrow" markerWidth="11" markerHeight="11" refX="8.5" refY="3.8" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L9,3.8 L0,7.6 z" fill="#202020"/>
+    </marker>
+  </defs>
+  <rect width="1800" height="980" fill="#ffffff"/>
+  <g class="paper">
+    <text x="300" y="430" class="node">A</text>
+    <text x="520" y="300" class="smallnode">M0</text>
+    <text x="760" y="300" class="smallnode">M1</text>
+    <text x="1000" y="300" class="smallnode">M2</text>
+    <text x="1240" y="300" class="smallnode">M3</text>
+    <text x="520" y="500" class="smallnode">L0</text>
+    <text x="760" y="500" class="smallnode">L1</text>
+    <text x="1000" y="500" class="smallnode">L2</text>
+    <text x="1240" y="500" class="smallnode">L3</text>
+    <text x="1485" y="400" class="smallnode">Y</text>
+  </g>
+  <line x1="342" y1="415" x2="500" y2="290" class="edge"/>
+  <line x1="342" y1="420" x2="500" y2="490" class="edge"/>
+  <path d="M342 404 C500 325, 650 305, 740 292" class="edge"/>
+  <path d="M342 412 C530 390, 675 465, 740 492" class="edge"/>
+  <path d="M342 396 C635 250, 945 250, 980 292" class="edge"/>
+  <path d="M342 422 C610 455, 920 495, 980 492" class="edge"/>
+  <path d="M342 388 C740 205, 1215 210, 1220 292" class="edge"/>
+  <path d="M342 430 C760 510, 1180 518, 1220 492" class="edge"/>
+  <path d="M342 384 C825 160, 1385 190, 1470 384" class="edge"/>
+  <line x1="555" y1="300" x2="735" y2="300" class="edge"/>
+  <line x1="795" y1="300" x2="975" y2="300" class="edge"/>
+  <line x1="1035" y1="300" x2="1215" y2="300" class="edge"/>
+  <line x1="555" y1="500" x2="735" y2="500" class="edge"/>
+  <line x1="795" y1="500" x2="975" y2="500" class="edge"/>
+  <line x1="1035" y1="500" x2="1215" y2="500" class="edge"/>
+  <line x1="540" y1="320" x2="540" y2="475" class="edge"/>
+  <line x1="780" y1="320" x2="780" y2="475" class="edge"/>
+  <line x1="1020" y1="320" x2="1020" y2="475" class="edge"/>
+  <line x1="1260" y1="320" x2="1260" y2="475" class="edge"/>
+  <path d="M550 500 C625 465, 690 355, 750 320" class="edge"/>
+  <path d="M790 500 C865 465, 930 355, 990 320" class="edge"/>
+  <path d="M1030 500 C1105 465, 1170 355, 1230 320" class="edge"/>
+  <path d="M555 300 C635 360, 700 455, 750 485" class="edge"/>
+  <path d="M795 300 C875 360, 940 455, 990 485" class="edge"/>
+  <path d="M1035 300 C1115 360, 1180 455, 1230 485" class="edge"/>
+  <path d="M550 500 C735 500, 905 500, 1230 500" class="edge"/>
+  <path d="M550 500 C720 470, 900 435, 1470 390" class="edge"/>
+  <path d="M790 500 C930 470, 1080 435, 1470 392" class="edge"/>
+  <path d="M1030 500 C1160 470, 1280 435, 1470 394" class="edge"/>
+  <path d="M1270 500 C1360 470, 1430 430, 1470 400" class="edge"/>
+  <path d="M555 300 C760 205, 1115 205, 1470 385" class="edge"/>
+  <path d="M795 300 C970 235, 1200 235, 1470 388" class="edge"/>
+  <path d="M1035 300 C1175 255, 1315 270, 1470 392" class="edge"/>
+  <line x1="1275" y1="300" x2="1470" y2="396" class="edge"/>
+  <text x="120" y="835" class="caplead">Figure 2.</text>
+  <text x="280" y="835" class="captext">Causal diagram for the longitudinal mediation analysis in the REGARD-VAP study.</text>
+  <text x="120" y="880" class="captext">V is omitted from the diagram but is assumed to affect A, L0-L3, M0-M3, and Y.</text>
+  <text x="120" y="925" class="captext">A denotes baseline carbapenem resistance; L0-L3 denote daily severity states; M0-M3 denote daily appropriate treatment; Y denotes 60-day mortality.</text>
+  <text x="120" y="970" class="captext">This figure is generated directly from code in the manuscript pipeline and is not imported from a static asset.</text>
+</svg>

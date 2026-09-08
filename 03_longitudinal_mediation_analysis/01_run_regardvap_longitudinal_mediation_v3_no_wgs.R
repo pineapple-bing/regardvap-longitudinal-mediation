@@ -1118,16 +1118,16 @@ mi_m <- suppressWarnings(as.integer(Sys.getenv("REGARDVAP_MI_M", unset = "10")))
 if (is.na(mi_m) || mi_m < 2L) mi_m <- 10L
 mi_nsim <- suppressWarnings(as.integer(Sys.getenv("REGARDVAP_MI_NSIM", unset = "10000")))
 if (is.na(mi_nsim) || mi_nsim < 1000L) mi_nsim <- 10000L
-table4 <- run_prespecified_sensitivities(
+sensitivity_estimates <- run_robustness_analyses(
   analysis,
   nsim = main_nsim,
   run_multiple_imputation = run_mi,
   mi_m = mi_m,
   mi_nsim = mi_nsim
 )
-sensitivity_support <- attr(table4, "support_diagnostics")
-sensitivity_mi_details <- attr(table4, "mi_imputation_estimates")
-sensitivity_mi_events <- attr(table4, "mi_logged_events")
+sensitivity_support <- attr(sensitivity_estimates, "support_diagnostics")
+sensitivity_mi_details <- attr(sensitivity_estimates, "mi_imputation_estimates")
+sensitivity_mi_events <- attr(sensitivity_estimates, "mi_logged_events")
 mc_stability <- run_monte_carlo_stability(analysis, nsim = main_nsim)
 write_cohort_diagnostics(panel, analysis, step_dirs[["step00"]])
 write_complete_case_diagnostics(analysis, step_dirs[["step03"]], horizon = 3L)
@@ -1141,7 +1141,10 @@ bootstrap_n <- suppressWarnings(as.integer(Sys.getenv("REGARDVAP_N_BOOT", unset 
 if (!is.na(bootstrap_n) && bootstrap_n > 0L) {
   bootstrap_nsim <- suppressWarnings(as.integer(Sys.getenv("REGARDVAP_BOOT_NSIM", unset = "10000")))
   if (is.na(bootstrap_nsim) || bootstrap_nsim < 100L) bootstrap_nsim <- 10000L
-  bootstrap_results <- bootstrap_gformula(analysis, B = bootstrap_n, nsim = bootstrap_nsim)
+  bootstrap_results <- bootstrap_gformula(
+    analysis, B = bootstrap_n, nsim = bootstrap_nsim,
+    checkpoint_path = file.path(step_dirs[["step03"]], "bootstrap_effect_estimates.csv")
+  )
   bootstrap_ci <- bootstrap_percentile_ci(bootstrap_results)
   utils::write.csv(bootstrap_results, file.path(step_dirs[["step03"]], "bootstrap_effect_estimates.csv"), row.names = FALSE)
   utils::write.csv(bootstrap_ci, file.path(step_dirs[["step03"]], "bootstrap_percentile_ci.csv"), row.names = FALSE)
@@ -1167,9 +1170,115 @@ if (!is.na(bootstrap_n) && bootstrap_n > 0L) {
 }
 utils::write.csv(bootstrap_summary, file.path(step_dirs[["step03"]], "diagnostic_bootstrap_status.csv"), row.names = FALSE)
 
+# Use the estimand labels already carried by each specification to keep
+# like-for-like model robustness analyses separate from analyses that change
+# the treatment window or target population. Every reported row receives its
+# own participant-level bootstrap interval.
+non_mi_estimates <- sensitivity_estimates[
+  sensitivity_estimates$sensitivity_id != "S15_multiple_imputation_severity", , drop = FALSE
+]
+primary_sensitivity_row <- primary_result_row(main_gf)
+
+sensitivity_bootstrap_draws <- data.frame()
+sensitivity_bootstrap_ci <- data.frame()
+sensitivity_bootstrap_status <- data.frame()
+if (!is.na(bootstrap_n) && bootstrap_n > 0L) {
+  sensitivity_bootstrap_n <- suppressWarnings(as.integer(Sys.getenv(
+    "REGARDVAP_SENS_N_BOOT", unset = as.character(bootstrap_n)
+  )))
+  if (is.na(sensitivity_bootstrap_n) || sensitivity_bootstrap_n < 1L) sensitivity_bootstrap_n <- bootstrap_n
+  sensitivity_bootstrap_nsim <- suppressWarnings(as.integer(Sys.getenv(
+    "REGARDVAP_SENS_BOOT_NSIM", unset = as.character(bootstrap_nsim)
+  )))
+  if (is.na(sensitivity_bootstrap_nsim) || sensitivity_bootstrap_nsim < 1000L) sensitivity_bootstrap_nsim <- 10000L
+
+  spec_draws <- bootstrap_sensitivity_analyses(
+    analysis, make_sensitivity_specifications(), B = sensitivity_bootstrap_n,
+    nsim = sensitivity_bootstrap_nsim, seed = 20260907L,
+    checkpoint_path = file.path(step_dirs[["step04"]], "bootstrap_model_and_alternative_analysis_draws.csv")
+  )
+  primary_draws <- data.frame(
+    bootstrap_id = bootstrap_results$bootstrap_id,
+    sensitivity_id = "PRIMARY", status = bootstrap_results$status,
+    error_message = bootstrap_results$message,
+    R_1_G1 = bootstrap_results$R_1_G1, R_1_G0 = bootstrap_results$R_1_G0,
+    R_0_G0 = bootstrap_results$R_0_G0, TE = bootstrap_results$TE,
+    IDE = bootstrap_results$IDE, IIE = bootstrap_results$IIE,
+    stringsAsFactors = FALSE
+  )
+  sensitivity_bootstrap_draws <- rbind(primary_draws, spec_draws)
+  sensitivity_bootstrap_ci <- sensitivity_bootstrap_percentile_ci(sensitivity_bootstrap_draws)
+  sensitivity_bootstrap_status <- sensitivity_bootstrap_ci[
+    sensitivity_bootstrap_ci$estimand == "TE",
+    c("sensitivity_id", "requested_resamples", "successful_resamples"), drop = FALSE
+  ]
+  sensitivity_bootstrap_status$failed_resamples <-
+    sensitivity_bootstrap_status$requested_resamples - sensitivity_bootstrap_status$successful_resamples
+  sensitivity_bootstrap_status$monte_carlo_draws_per_resample <- sensitivity_bootstrap_nsim
+}
+
+all_non_mi <- rbind(primary_sensitivity_row, non_mi_estimates)
+if (nrow(sensitivity_bootstrap_ci)) {
+  all_non_mi <- attach_sensitivity_intervals(all_non_mi, sensitivity_bootstrap_ci)
+}
+table4_model_robustness <- all_non_mi[
+  all_non_mi$same_estimand_as_primary %in% TRUE, , drop = FALSE
+]
+table5_alternative_estimands <- all_non_mi[
+  !all_non_mi$same_estimand_as_primary %in% TRUE, , drop = FALSE
+]
+table_supp_missing_data <- sensitivity_estimates[
+  sensitivity_estimates$sensitivity_id == "S15_multiple_imputation_severity", , drop = FALSE
+]
+
+mi_bootstrap_draws <- data.frame()
+mi_bootstrap_ci <- data.frame()
+mi_bootstrap_status <- data.frame()
+if (run_mi && nrow(table_supp_missing_data) && !is.na(bootstrap_n) && bootstrap_n > 0L) {
+  mi_bootstrap_n <- suppressWarnings(as.integer(Sys.getenv(
+    "REGARDVAP_MI_N_BOOT", unset = as.character(bootstrap_n)
+  )))
+  if (is.na(mi_bootstrap_n) || mi_bootstrap_n < 1L) mi_bootstrap_n <- bootstrap_n
+  mi_bootstrap_m <- suppressWarnings(as.integer(Sys.getenv("REGARDVAP_MI_BOOT_M", unset = "5")))
+  if (is.na(mi_bootstrap_m) || mi_bootstrap_m < 2L) mi_bootstrap_m <- 5L
+  mi_bootstrap_nsim <- suppressWarnings(as.integer(Sys.getenv(
+    "REGARDVAP_MI_BOOT_NSIM", unset = as.character(mi_nsim)
+  )))
+  if (is.na(mi_bootstrap_nsim) || mi_bootstrap_nsim < 1000L) mi_bootstrap_nsim <- 10000L
+  mi_bootstrap_draws <- bootstrap_mi_severity_sensitivity(
+    analysis, B = mi_bootstrap_n, m = mi_bootstrap_m, maxit = 10L,
+    nsim = mi_bootstrap_nsim, seed = 20261907L,
+    checkpoint_path = file.path(step_dirs[["step04"]], "bootstrap_missing_data_draws.csv")
+  )
+  mi_bootstrap_ci <- sensitivity_bootstrap_percentile_ci(mi_bootstrap_draws)
+  table_supp_missing_data <- attach_sensitivity_intervals(table_supp_missing_data, mi_bootstrap_ci)
+  mi_bootstrap_status <- data.frame(
+    sensitivity_id = "S15_multiple_imputation_severity",
+    requested_resamples = mi_bootstrap_n,
+    successful_resamples = sum(mi_bootstrap_draws$status == "ok"),
+    failed_resamples = sum(mi_bootstrap_draws$status != "ok"),
+    imputations_per_resample = mi_bootstrap_m,
+    monte_carlo_draws_per_imputation = mi_bootstrap_nsim,
+    stringsAsFactors = FALSE
+  )
+}
+
+population_description <- make_population_description(
+  analysis,
+  c(list(make_primary_specification()), make_sensitivity_specifications())
+)
+
 utils::write.csv(panel, file.path(step_dirs[["step00"]], "analysis_panel_long_day0_day3.csv"), row.names = FALSE)
 utils::write.csv(analysis, file.path(step_dirs[["step00"]], "analysis_panel_wide_for_gformula.csv"), row.names = FALSE)
 utils::write.csv(source_audit, file.path(step_dirs[["step00"]], "data_sources_used.csv"), row.names = FALSE)
+input_checksums <- data.frame(
+  input = c("day0_day3", "day0_day60", "severity", "itt_rds"),
+  file_name = basename(c(day03_path, day60_path, severity_path, itt_rds_path)),
+  md5 = unname(tools::md5sum(c(day03_path, day60_path, severity_path, itt_rds_path))),
+  stringsAsFactors = FALSE
+)
+utils::write.csv(input_checksums, file.path(step_dirs[["step00"]], "input_file_md5.csv"), row.names = FALSE)
+writeLines(capture.output(utils::sessionInfo()), file.path(step_dirs[["step00"]], "session_info.txt"))
 utils::write.csv(import_warnings, file.path(step_dirs[["step00"]], "diagnostic_excel_import_warnings.csv"), row.names = FALSE)
 utils::write.csv(baseline_treatment_consistency, file.path(step_dirs[["step00"]], "diagnostic_baseline_treatment_consistency.csv"), row.names = FALSE)
 utils::write.csv(temporal_ordering_audit, file.path(step_dirs[["step00"]], "diagnostic_temporal_ordering_assumptions.csv"), row.names = FALSE)
@@ -1184,8 +1293,23 @@ utils::write.csv(trajectory_tab, file.path(step_dirs[["step02"]], "table2_observ
 utils::write.csv(figure3_sum, file.path(step_dirs[["step02"]], "figure3_daywise_summary.csv"), row.names = FALSE)
 
 utils::write.csv(table3, file.path(step_dirs[["step03"]], "table3_main_gformula_estimates.csv"), row.names = FALSE)
-utils::write.csv(table4, file.path(step_dirs[["step04"]], "table4_sensitivity_analyses.csv"), row.names = FALSE)
+utils::write.csv(table4_model_robustness, file.path(step_dirs[["step04"]], "table4_model_robustness_same_estimand.csv"), row.names = FALSE)
+utils::write.csv(table5_alternative_estimands, file.path(step_dirs[["step04"]], "table5_alternative_estimands_and_populations.csv"), row.names = FALSE)
+utils::write.csv(table_supp_missing_data, file.path(step_dirs[["step04"]], "tableS_missing_data_sensitivity.csv"), row.names = FALSE)
+utils::write.csv(rbind(table4_model_robustness, table5_alternative_estimands, table_supp_missing_data),
+  file.path(step_dirs[["step04"]], "all_robustness_analyses.csv"), row.names = FALSE)
 utils::write.csv(sensitivity_support, file.path(step_dirs[["step04"]], "diagnostic_sensitivity_support.csv"), row.names = FALSE)
+utils::write.csv(population_description, file.path(step_dirs[["step04"]], "descriptive_analysis_populations.csv"), row.names = FALSE)
+if (nrow(sensitivity_bootstrap_draws) > 0L) {
+  utils::write.csv(sensitivity_bootstrap_draws, file.path(step_dirs[["step04"]], "bootstrap_model_and_alternative_analysis_draws.csv"), row.names = FALSE)
+  utils::write.csv(sensitivity_bootstrap_ci, file.path(step_dirs[["step04"]], "bootstrap_model_and_alternative_analysis_ci.csv"), row.names = FALSE)
+  utils::write.csv(sensitivity_bootstrap_status, file.path(step_dirs[["step04"]], "diagnostic_sensitivity_bootstrap_status.csv"), row.names = FALSE)
+}
+if (nrow(mi_bootstrap_draws) > 0L) {
+  utils::write.csv(mi_bootstrap_draws, file.path(step_dirs[["step04"]], "bootstrap_missing_data_draws.csv"), row.names = FALSE)
+  utils::write.csv(mi_bootstrap_ci, file.path(step_dirs[["step04"]], "bootstrap_missing_data_ci.csv"), row.names = FALSE)
+  utils::write.csv(mi_bootstrap_status, file.path(step_dirs[["step04"]], "diagnostic_missing_data_bootstrap_status.csv"), row.names = FALSE)
+}
 if (nrow(sensitivity_mi_details) > 0L) {
   utils::write.csv(
     sensitivity_mi_details,
@@ -1202,6 +1326,33 @@ if (nrow(sensitivity_mi_events) > 0L) {
 }
 utils::write.csv(mc_stability, file.path(step_dirs[["step03"]], "diagnostic_monte_carlo_stability.csv"), row.names = FALSE)
 
+methods_text <- c(
+  "# Statistical analysis: longitudinal mediation and robustness analyses",
+  "",
+  "Interventional direct and indirect effects were estimated on the 60-day mortality risk-difference scale using a longitudinal parametric g-formula. Baseline carbapenem resistance was the exposure, daily appropriate active antibiotic treatment on Days 0–3 was the mediator process, and daily clinical severity was treated as a time-varying mediator–outcome confounder affected by prior treatment. Baseline models adjusted for age, sex, Charlson comorbidity score, study site, ICU type, and bacterial group. Country was not included simultaneously with site because the two were exactly nested in these data.",
+  "",
+  paste0("The primary point estimate used ", format(main_nsim, big.mark = ","), " Monte Carlo draws per intervention regime. ",
+    if (!is.na(bootstrap_n) && bootstrap_n > 0L) paste0(
+      "Uncertainty was quantified using ", bootstrap_n,
+      " participant-level nonparametric bootstrap resamples; all nuisance models were re-estimated in every resample, with ",
+      format(bootstrap_nsim, big.mark = ","), " Monte Carlo draws per regime. Two-sided 95% percentile confidence intervals are reported."
+    ) else "Bootstrap confidence intervals were disabled for this development run."),
+  "",
+  "Robustness analyses that retained the primary target population, mediator window, and effect definitions were reported separately from analyses that changed the mediator window or target population. The former examined alternative severity measurement, treatment-process and outcome-model specifications, centre adjustment, numerical probability bounds, and temporal ordering. The latter examined an early treatment window, culture-positive and major-pathogen populations, and populations with stronger observed exposure support. These analyses were treated as structured robustness analyses rather than independent confirmatory hypothesis tests.",
+  "",
+  if (run_mi) paste0(
+    "As a missing-data analysis, missing Day 1–3 severity values were imputed by predictive mean matching. The reported point estimate averaged estimates from ", mi_m,
+    " imputed datasets. Its confidence interval was obtained by repeating imputation and g-formula estimation within each of ",
+    if (exists("mi_bootstrap_n")) mi_bootstrap_n else 0L,
+    " participant-level bootstrap resamples (", if (exists("mi_bootstrap_m")) mi_bootstrap_m else 0L,
+    " imputations per resample and ", if (exists("mi_bootstrap_nsim")) format(mi_bootstrap_nsim, big.mark = ",") else "0",
+    " Monte Carlo draws per imputation)."
+  ) else "Multiple imputation was disabled for this development run.",
+  "",
+  "The supplied day-level files did not establish whether within-day clinical extrema preceded treatment administration. The primary same-day ordering therefore remains an identification assumption; a prior-day-severity treatment-model analysis was reported separately."
+)
+writeLines(methods_text, file.path(step_dirs[["step04"]], "STATISTICAL_ANALYSIS.md"))
+
 notes <- c(
   "# REGARD-VAP longitudinal mediation pipeline v3",
   "",
@@ -1213,10 +1364,13 @@ notes <- c(
   "- step01_baseline: baseline Table 1 style summary by baseline carbapenem resistance",
   "- step02_longitudinal_summary: Day 0-3 observed treatment, severity, and O_t information summary",
   "- step03_main_gformula: primary interventional direct and indirect effect estimates",
-  paste0("- Primary and sensitivity Monte Carlo draws per regime: ", main_nsim),
-  "- step04_sensitivity: measurement, treatment-process, target-population, centre-structure, positivity, and missing-data analyses",
+  paste0("- Primary and point-estimate robustness Monte Carlo draws per regime: ", main_nsim),
+  "- step04_sensitivity/table4_model_robustness_same_estimand.csv: primary reference plus analyses retaining the primary estimand",
+  "- step04_sensitivity/table5_alternative_estimands_and_populations.csv: analyses changing the mediator window or target population",
+  "- step04_sensitivity/tableS_missing_data_sensitivity.csv: multiple-imputation missing-data analysis",
+  "- Every reported robustness row receives its own participant-level percentile bootstrap interval when bootstrap is enabled.",
   paste0("- Multiple-imputation sensitivity enabled: ", run_mi, "; m=", mi_m, "; Monte Carlo draws per imputation=", mi_nsim),
-  "- The multiple-imputation row is a point-estimate robustness summary averaged across imputations; it is not a Rubin-pooled confidence interval.",
+  "- The multiple-imputation point estimate averages imputation-specific estimates; its interval repeats imputation and estimation inside each participant-level bootstrap resample.",
   "- Any automatic predictor exclusions from mice are retained in diagnostic_mi_logged_events.csv.",
   "- step03_main_gformula/diagnostic_monte_carlo_stability.csv: repeated-seed Monte Carlo stability check for the primary specification",
   "- step05_hte: reserved for future heterogeneity analyses; no results are generated",

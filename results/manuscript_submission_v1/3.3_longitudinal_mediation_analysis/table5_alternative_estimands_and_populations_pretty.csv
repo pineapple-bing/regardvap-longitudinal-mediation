@@ -1,0 +1,6 @@
+"Specification","Family","Primary estimand retained","Population","Status","Complete cases","Total effect (95% CI)","Indirect effect (95% CI)","Direct effect (95% CI)"
+"S5_early_treatment_window: Alternative mediator window through Day 1 only","alternative_estimand","No","all","ok",408,"0.114 (-0.021 to 0.232)","-0.001 (-0.020 to 0.017)","0.115 (-0.020 to 0.242)"
+"S6_culture_positive: Restrict to culture-positive participants","target_population","No","culture_positive","ok",299,"0.142 (-0.003 to 0.272)","0.002 (-0.025 to 0.023)","0.139 (-0.000 to 0.269)"
+"S7_major_pathogens: Restrict to Klebsiella, Acinetobacter, or Pseudomonas","target_population","No","major_pathogens","ok",243,"0.138 (-0.006 to 0.243)","-0.007 (-0.030 to 0.016)","0.145 (0.000 to 0.254)"
+"S12_marginal_exposure_support: Restrict to site and bacteria levels with at least five participants in each exposure group","exposure_positivity","No","marginal_exposure_support","ok",233,"0.157 (0.004 to 0.300)","-0.003 (-0.028 to 0.023)","0.160 (0.008 to 0.308)"
+"S13_joint_exposure_support: Restrict to site-by-bacteria cells with at least five participants in each exposure group","exposure_positivity","No","joint_exposure_support","ok",211,"0.195 (0.028 to 0.323)","-0.001 (-0.029 to 0.028)","0.196 (0.031 to 0.320)"

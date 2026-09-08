@@ -58,16 +58,13 @@ run_r_script <- function(script_path, script_args) {
   assert_file_exists(script_path, "Script")
   rscript_bin <- file.path(R.home("bin"), "Rscript")
   cmd_args <- shQuote(c(script_path, script_args))
-  out <- system2(rscript_bin, args = cmd_args, stdout = TRUE, stderr = TRUE)
-  status <- attr(out, "status")
-  if (is.null(status)) status <- 0L
-  if (length(out) > 0) {
-    message_block(paste(out, collapse = "\n"))
-  }
+  # Inherit the parent streams so long bootstrap runs expose progress instead
+  # of buffering every message until the child process exits.
+  status <- system2(rscript_bin, args = cmd_args, stdout = "", stderr = "")
   if (status != 0L) {
     stop("Child script failed: ", script_path, call. = FALSE)
   }
-  invisible(out)
+  invisible(status)
 }
 
 safe_num <- function(x) {
@@ -314,9 +311,18 @@ write_section_readme <- function(path, lines) {
 }
 
 gt_save_local <- function(tbl, html_path) {
-  old_cache <- Sys.getenv("R_SASS_CACHE_DIR", unset = "")
-  on.exit(Sys.setenv(R_SASS_CACHE_DIR = old_cache), add = TRUE)
-  Sys.setenv(R_SASS_CACHE_DIR = file.path(tempdir(), "r-sass-cache"))
+  old_sass_cache <- Sys.getenv("R_SASS_CACHE_DIR", unset = "")
+  old_user_cache <- Sys.getenv("R_USER_CACHE_DIR", unset = "")
+  on.exit(Sys.setenv(
+    R_SASS_CACHE_DIR = old_sass_cache,
+    R_USER_CACHE_DIR = old_user_cache
+  ), add = TRUE)
+  cache_dir <- file.path(tempdir(), "r-sass-cache")
+  dir.create(cache_dir, recursive = TRUE, showWarnings = FALSE)
+  Sys.setenv(R_SASS_CACHE_DIR = cache_dir, R_USER_CACHE_DIR = cache_dir)
+  if (requireNamespace("sass", quietly = TRUE)) {
+    invisible(sass::sass_cache_get_dir(cache_dir, create = TRUE))
+  }
   gt::gtsave(tbl, html_path)
 }
 
@@ -490,8 +496,23 @@ make_pretty_table3 <- function(input_csv, out_dir) {
   gt_save_local(tbl, file.path(out_dir, "table3_counterfactual_risks_te_ide_iie_pretty.html"))
 }
 
-make_pretty_table4 <- function(input_csv, out_dir) {
+make_pretty_robustness_table <- function(
+    input_csv, out_dir, output_stem, title, subtitle, source_note) {
   df <- read.csv(input_csv, stringsAsFactors = FALSE, check.names = FALSE)
+
+  estimate_ci <- function(variable) {
+    lower <- paste0(variable, "_lower_95")
+    upper <- paste0(variable, "_upper_95")
+    if (all(c(lower, upper) %in% names(df))) {
+      ifelse(
+        is.finite(df[[variable]]) & is.finite(df[[lower]]) & is.finite(df[[upper]]),
+        sprintf("%.3f (%.3f to %.3f)", df[[variable]], df[[lower]], df[[upper]]),
+        ifelse(is.finite(df[[variable]]), sprintf("%.3f (CI unavailable)", df[[variable]]), "Not estimated")
+      )
+    } else {
+      ifelse(is.finite(df[[variable]]), sprintf("%.3f", df[[variable]]), "Not estimated")
+    }
+  }
 
   df$Specification <- if (all(c("sensitivity_id", "description") %in% names(df))) {
     paste0(df$sensitivity_id, ": ", df$description)
@@ -510,12 +531,9 @@ make_pretty_table4 <- function(input_csv, out_dir) {
     Population = if ("subset" %in% names(df)) df$subset else "all",
     Status = if ("status" %in% names(df)) df$status else "ok",
     `Complete cases` = df$n_complete,
-    `Risk under R(1, G1)` = sprintf("%.3f", df$R_1_G1),
-    `Risk under R(1, G0)` = sprintf("%.3f", df$R_1_G0),
-    `Risk under R(0, G0)` = sprintf("%.3f", df$R_0_G0),
-    `Total effect (TE)` = sprintf("%.3f", df$TE),
-    `Indirect effect (IIE)` = sprintf("%.3f", df$IIE),
-    `Direct effect (IDE)` = sprintf("%.3f", df$IDE),
+    `Total effect (95% CI)` = estimate_ci("TE"),
+    `Indirect effect (95% CI)` = estimate_ci("IIE"),
+    `Direct effect (95% CI)` = estimate_ci("IDE"),
     stringsAsFactors = FALSE,
     check.names = FALSE
   )
@@ -523,25 +541,21 @@ make_pretty_table4 <- function(input_csv, out_dir) {
   tbl <- display_df |>
     gt::gt(rowname_col = "Specification") |>
     gt::tab_header(
-      title = gt::md("**Table 4. Sensitivity analyses for the longitudinal g-formula**"),
-      subtitle = "Measurement, model, target-population, centre-structure, exposure/mediator positivity, temporal-ordering, and missing-data analyses."
+      title = gt::md(paste0("**", title, "**")),
+      subtitle = subtitle
     ) |>
     gt::tab_spanner(
       label = "Analysis definition and diagnostics",
       columns = c(Family, `Primary estimand retained`, Population, Status, `Complete cases`)
     ) |>
     gt::tab_spanner(
-      label = "Counterfactual risks",
-      columns = c(`Risk under R(1, G1)`, `Risk under R(1, G0)`, `Risk under R(0, G0)`)
-    ) |>
-    gt::tab_spanner(
-      label = "Effect decomposition",
-      columns = c(`Total effect (TE)`, `Indirect effect (IIE)`, `Direct effect (IDE)`)
+      label = "Risk-difference effect estimates",
+      columns = c(`Total effect (95% CI)`, `Indirect effect (95% CI)`, `Direct effect (95% CI)`)
     ) |>
     gt::cols_align(align = "center", columns = everything()) |>
     gt::tab_source_note(
       source_note = gt::md(
-        "Rows marked 'No' under primary estimand retained use an alternative treatment window or target population and should not be described as exact replications of the primary estimand. The microbiology-information proxy remains excluded pending timestamp validation."
+        source_note
       )
     ) |>
     gt::tab_style(
@@ -564,8 +578,8 @@ make_pretty_table4 <- function(input_csv, out_dir) {
       table.width = gt::pct(100)
     )
 
-  write.csv(display_df, file.path(out_dir, "table4_sensitivity_analyses_pretty.csv"), row.names = FALSE)
-  gt_save_local(tbl, file.path(out_dir, "table4_sensitivity_analyses_pretty.html"))
+  write.csv(display_df, file.path(out_dir, paste0(output_stem, "_pretty.csv")), row.names = FALSE)
+  gt_save_local(tbl, file.path(out_dir, paste0(output_stem, "_pretty.html")))
 }
 
 assert_file_exists(day03_path, "Day 0-3 file")
@@ -583,6 +597,11 @@ analysis_wide_path <- file.path(analysis_core_dir, "step00_data_prep", "analysis
 assert_file_exists(analysis_wide_path, "Longitudinal analysis panel")
 
 message_block("Collecting manuscript-structured outputs...")
+
+for (provenance_file in c("input_file_md5.csv", "session_info.txt")) {
+  provenance_src <- file.path(analysis_core_dir, "step00_data_prep", provenance_file)
+  if (file.exists(provenance_src)) copy_required(provenance_src, file.path(out_dir, provenance_file))
+}
 
 # 3.1
 copy_required(
@@ -602,7 +621,7 @@ write_section_readme(
     "",
     "- Table 1: table1_baseline_summary.csv",
     "- Cohort flow: diagnostic_cohort_flow.csv",
-    "- Symptom-day versus Day 0 appropriate-treatment audit: diagnostic_baseline_treatment_consistency.csv"
+    "- The participant-level symptom-day versus Day 0 treatment audit is generated in `_scratch` and intentionally excluded from manuscript-facing outputs."
   )
 )
 
@@ -616,6 +635,10 @@ copy_required(
 copy_required(
   file.path(analysis_core_dir, "step02_longitudinal_summary", "table2_observed_trajectory_distribution.csv"),
   file.path(section_dirs[["sec32"]], "table2_observed_trajectory_distribution.csv")
+)
+copy_required(
+  file.path(analysis_core_dir, "step02_longitudinal_summary", "diagnostic_observed_trajectory_by_day.csv"),
+  file.path(section_dirs[["sec32"]], "diagnostic_observed_trajectory_by_day.csv")
 )
 copy_required(
   file.path(analysis_core_dir, "step02_longitudinal_summary", "figure3_observed_processes.png"),
@@ -650,19 +673,28 @@ write_section_readme(
 # 3.3
 table3_source <- file.path(analysis_core_dir, "step03_main_gformula", "table3_main_gformula_estimates.csv")
 copy_required(table3_source, file.path(section_dirs[["sec33"]], "table3_counterfactual_risks_te_ide_iie.csv"))
-copy_required(
-  file.path(analysis_core_dir, "step04_sensitivity", "table4_sensitivity_analyses.csv"),
-  file.path(section_dirs[["sec33"]], "table4_sensitivity_analyses.csv")
-)
 for (support_file in c(
+  "table4_model_robustness_same_estimand.csv",
+  "table5_alternative_estimands_and_populations.csv",
+  "tableS_missing_data_sensitivity.csv",
+  "all_robustness_analyses.csv",
+  "descriptive_analysis_populations.csv",
   "diagnostic_sensitivity_support.csv",
   "diagnostic_mi_imputation_estimates.csv",
-  "diagnostic_mi_logged_events.csv"
+  "diagnostic_mi_logged_events.csv",
+  "bootstrap_model_and_alternative_analysis_ci.csv",
+  "bootstrap_missing_data_ci.csv",
+  "diagnostic_sensitivity_bootstrap_status.csv",
+  "diagnostic_missing_data_bootstrap_status.csv"
 )) {
   support_src <- file.path(analysis_core_dir, "step04_sensitivity", support_file)
   if (file.exists(support_src)) {
     copy_required(support_src, file.path(section_dirs[["sec33"]], support_file))
   }
+}
+methods_src <- file.path(analysis_core_dir, "step04_sensitivity", "STATISTICAL_ANALYSIS.md")
+if (file.exists(methods_src)) {
+  copy_required(methods_src, file.path(section_dirs[["sec33"]], "STATISTICAL_ANALYSIS.md"))
 }
 for (bootstrap_file in c("bootstrap_percentile_ci.csv", "diagnostic_bootstrap_status.csv")) {
   bootstrap_src <- file.path(analysis_core_dir, "step03_main_gformula", bootstrap_file)
@@ -678,7 +710,14 @@ for (diagnostic_file in c(
   "diagnostic_exposure_propensity_model.csv",
   "diagnostic_conditional_positivity.csv",
   "diagnostic_prediction_fallbacks.csv",
-  "diagnostic_nuisance_model_types.csv"
+  "diagnostic_nuisance_model_types.csv",
+  "diagnostic_nuisance_model_sample_sizes.csv",
+  "diagnostic_complete_case_inclusion_by_A_Y.csv",
+  "diagnostic_primary_complete_case_flow.csv",
+  "diagnostic_primary_missingness_by_variable.csv",
+  "diagnostic_positivity_by_day.csv",
+  "diagnostic_positivity_by_history.csv",
+  "diagnostic_monte_carlo_stability.csv"
 )) {
   diagnostic_src <- file.path(analysis_core_dir, "step03_main_gformula", diagnostic_file)
   if (file.exists(diagnostic_src)) {
@@ -694,10 +733,29 @@ make_pretty_table3(
   file.path(section_dirs[["sec33"]], "table3_counterfactual_risks_te_ide_iie.csv"),
   section_dirs[["sec33"]]
 )
-make_pretty_table4(
-  file.path(section_dirs[["sec33"]], "table4_sensitivity_analyses.csv"),
-  section_dirs[["sec33"]]
+make_pretty_robustness_table(
+  file.path(section_dirs[["sec33"]], "table4_model_robustness_same_estimand.csv"),
+  section_dirs[["sec33"]], "table4_model_robustness_same_estimand",
+  "Table 4. Model and measurement robustness analyses",
+  "Analyses retaining the primary target population, treatment window, and interventional effect definitions.",
+  "Values are risk differences with patient-level bootstrap 95% percentile confidence intervals. The primary row is shown as the reference. These analyses probe modelling assumptions and are not separate confirmatory hypothesis tests."
 )
+make_pretty_robustness_table(
+  file.path(section_dirs[["sec33"]], "table5_alternative_estimands_and_populations.csv"),
+  section_dirs[["sec33"]], "table5_alternative_estimands_and_populations",
+  "Table 5. Alternative estimands and target populations",
+  "Analyses that change the mediator window or restrict the target population.",
+  "Values are risk differences with patient-level bootstrap 95% percentile confidence intervals. These rows do not estimate the same effect as the primary analysis and must not be described as direct robustness replications."
+)
+missing_data_table <- file.path(section_dirs[["sec33"]], "tableS_missing_data_sensitivity.csv")
+if (file.exists(missing_data_table) && nrow(read.csv(missing_data_table, stringsAsFactors = FALSE)) > 0L) {
+  make_pretty_robustness_table(
+    missing_data_table, section_dirs[["sec33"]], "tableS_missing_data_sensitivity",
+    "Supplementary Table. Missing-data sensitivity analysis",
+    "Multiple imputation of missing Day 1–3 severity measurements.",
+    "Point estimates average the imputation-specific g-formula estimates. Confidence intervals are obtained by repeating imputation and estimation within each participant-level bootstrap resample."
+  )
+}
 write_section_readme(
   file.path(section_dirs[["sec33"]], "README_3.3.md"),
   c(
@@ -706,11 +764,16 @@ write_section_readme(
     "- Table 3: table3_counterfactual_risks_te_ide_iie.csv",
     "- Pretty Table 3 HTML: table3_counterfactual_risks_te_ide_iie_pretty.html",
     "- Figure 4: figure4_te_decomposition.png",
-    "- Table 4: table4_sensitivity_analyses.csv",
-    "- Pretty Table 4 HTML: table4_sensitivity_analyses_pretty.html",
+    "- Table 4 (same estimand): table4_model_robustness_same_estimand.csv",
+    "- Table 5 (changed estimand/population): table5_alternative_estimands_and_populations.csv",
+    "- Supplementary missing-data analysis: tableS_missing_data_sensitivity.csv",
+    "- Pretty HTML versions use the corresponding `_pretty.html` suffix",
+    "- Descriptive denominators and observed mortality: descriptive_analysis_populations.csv",
     "- Supporting plotting data: figure4_te_decomposition_data.csv",
     "- Diagnostics: sensitivity support, exposure propensity/support, temporal ordering, nuisance-model type, prediction truncation, MI events, and bootstrap status CSV files",
-    "- Bootstrap intervals: bootstrap_percentile_ci.csv (when enabled)"
+    "- Primary bootstrap intervals: bootstrap_percentile_ci.csv (when enabled)",
+    "- Analysis-specific intervals and run status: bootstrap_model_and_alternative_analysis_ci.csv, bootstrap_missing_data_ci.csv, and the corresponding diagnostic status files",
+    "- Ready-to-paste methods text matching this run: STATISTICAL_ANALYSIS.md"
   )
 )
 
@@ -736,17 +799,14 @@ write_section_readme(
     "- 3.3 Longitudinal mediation analysis",
     "- 3.4 Heterogeneity of treatment effect",
     "",
-    "Core analysis directories used internally:",
-    paste0("- Longitudinal core: ", analysis_core_dir),
-    "",
-    "Input files:",
-    paste0("- Day 0-3: ", day03_path),
-    paste0("- Day 0-60: ", day60_path),
-    paste0("- Severity: ", severity_path),
-    paste0("- ITT RDS: ", itt_rds_path),
+    "Input filenames:",
+    paste0("- Day 0-3: ", basename(day03_path)),
+    paste0("- Day 0-60: ", basename(day60_path)),
+    paste0("- Severity: ", basename(severity_path)),
+    paste0("- ITT RDS: ", basename(itt_rds_path)),
     "",
     "All manuscript-facing figures in this pipeline are generated by code.",
-    "The baseline summary and its treatment-variable consistency audit are included in Section 3.1."
+    "Only de-identified aggregate outputs should be committed. Participant-level panels, individual propensity predictions, and local absolute paths remain outside the repository."
   )
 )
 

@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<style>body{background-color:white;}</style>
+
+
+</head>
+<body>
+<div id="hidorgbovk" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+  <style>#hidorgbovk table {
+  font-family: Arial, Helvetica, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#hidorgbovk thead, #hidorgbovk tbody, #hidorgbovk tfoot, #hidorgbovk tr, #hidorgbovk td, #hidorgbovk th {
+  border-style: none;
+}
+
+#hidorgbovk p {
+  margin: 0;
+  padding: 0;
+}
+
+#hidorgbovk .gt_table {
+  display: table;
+  border-collapse: collapse;
+  line-height: normal;
+  margin-left: auto;
+  margin-right: auto;
+  color: #333333;
+  font-size: 13px;
+  font-weight: normal;
+  font-style: normal;
+  background-color: #FFFFFF;
+  width: 100%;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #1E3A5F;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #1E3A5F;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+}
+
+#hidorgbovk .gt_caption {
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+
+#hidorgbovk .gt_title {
+  color: #333333;
+  font-size: 18px;
+  font-weight: initial;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-color: #FFFFFF;
+  border-bottom-width: 0;
+}
+
+#hidorgbovk .gt_subtitle {
+  color: #333333;
+  font-size: 12px;
+  font-weight: initial;
+  padding-top: 3px;
+  padding-bottom: 5px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-color: #FFFFFF;
+  border-top-width: 0;
+}
+
+#hidorgbovk .gt_heading {
+  background-color: #FFFFFF;
+  text-align: center;
+  border-bottom-color: #FFFFFF;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#hidorgbovk .gt_bottom_border {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#hidorgbovk .gt_col_headings {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#hidorgbovk .gt_col_heading {
+  color: #FFFFFF;
+  background-color: #1E3A5F;
+  font-size: 100%;
+  font-weight: normal;
+  text-transform: inherit;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 6px;
+  padding-left: 5px;
+  padding-right: 5px;
+  overflow-x: hidden;
+}
+
+#hidorgbovk .gt_column_spanner_outer {
+  color: #FFFFFF;
+  background-color: #1E3A5F;
+  font-size: 100%;
+  font-weight: normal;
+  text-transform: inherit;
+  padding-top: 0;
+  padding-bottom: 0;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+#hidorgbovk .gt_column_spanner_outer:first-child {
+  padding-left: 0;
+}
+
+#hidorgbovk .gt_column_spanner_outer:last-child {
+  padding-right: 0;
+}
+
+#hidorgbovk .gt_column_spanner {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  overflow-x: hidden;
+  display: inline-block;
+  width: 100%;
+}
+
+#hidorgbovk .gt_spanner_row {
+  border-bottom-style: hidden;
+}
+
+#hidorgbovk .gt_group_heading {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  color: #333333;
+  background-color: #D9E7F5;
+  font-size: 13px;
+  font-weight: initial;
+  text-transform: inherit;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+  text-align: left;
+}
+
+#hidorgbovk .gt_empty_group_heading {
+  padding: 0.5px;
+  color: #333333;
+  background-color: #D9E7F5;
+  font-size: 13px;
+  font-weight: initial;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: middle;
+}
+
+#hidorgbovk .gt_from_md > :first-child {
+  margin-top: 0;
+}
+
+#hidorgbovk .gt_from_md > :last-child {
+  margin-bottom: 0;
+}
+
+#hidorgbovk .gt_row {
+  padding-top: 7px;
+  padding-bottom: 7px;
+  padding-left: 5px;
+  padding-right: 5px;
+  margin: 10px;
+  border-top-style: solid;
+  border-top-width: 1px;
+  border-top-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+  overflow-x: hidden;
+}
+
+#hidorgbovk .gt_stub {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#hidorgbovk .gt_stub_row_group {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+  vertical-align: top;
+}
+
+#hidorgbovk .gt_row_group_first td {
+  border-top-width: 2px;
+}
+
+#hidorgbovk .gt_row_group_first th {
+  border-top-width: 2px;
+}
+
+#hidorgbovk .gt_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#hidorgbovk .gt_first_summary_row {
+  border-top-style: solid;
+  border-top-color: #D3D3D3;
+}
+
+#hidorgbovk .gt_first_summary_row.thick {
+  border-top-width: 2px;
+}
+
+#hidorgbovk .gt_last_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#hidorgbovk .gt_grand_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#hidorgbovk .gt_first_grand_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-style: double;
+  border-top-width: 6px;
+  border-top-color: #D3D3D3;
+}
+
+#hidorgbovk .gt_last_grand_summary_row_top {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-style: double;
+  border-bottom-width: 6px;
+  border-bottom-color: #D3D3D3;
+}
+
+#hidorgbovk .gt_striped {
+  background-color: rgba(128, 128, 128, 0.05);
+}
+
+#hidorgbovk .gt_table_body {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#hidorgbovk .gt_footnotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#hidorgbovk .gt_footnote {
+  margin: 0px;
+  font-size: 90%;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#hidorgbovk .gt_sourcenotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#hidorgbovk .gt_sourcenote {
+  font-size: 11px;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#hidorgbovk .gt_left {
+  text-align: left;
+}
+
+#hidorgbovk .gt_center {
+  text-align: center;
+}
+
+#hidorgbovk .gt_right {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+#hidorgbovk .gt_font_normal {
+  font-weight: normal;
+}
+
+#hidorgbovk .gt_font_bold {
+  font-weight: bold;
+}
+
+#hidorgbovk .gt_font_italic {
+  font-style: italic;
+}
+
+#hidorgbovk .gt_super {
+  font-size: 65%;
+}
+
+#hidorgbovk .gt_footnote_marks {
+  font-size: 75%;
+  vertical-align: 0.4em;
+  position: initial;
+}
+
+#hidorgbovk .gt_asterisk {
+  font-size: 100%;
+  vertical-align: 0;
+}
+
+#hidorgbovk .gt_indent_1 {
+  text-indent: 5px;
+}
+
+#hidorgbovk .gt_indent_2 {
+  text-indent: 10px;
+}
+
+#hidorgbovk .gt_indent_3 {
+  text-indent: 15px;
+}
+
+#hidorgbovk .gt_indent_4 {
+  text-indent: 20px;
+}
+
+#hidorgbovk .gt_indent_5 {
+  text-indent: 25px;
+}
+
+#hidorgbovk .katex-display {
+  display: inline-flex !important;
+  margin-bottom: 0.75em !important;
+}
+
+#hidorgbovk div.Reactable > div.rt-table > div.rt-thead > div.rt-tr.rt-tr-group-header > div.rt-th-group:after {
+  height: 0px !important;
+}
+</style>
+  <table class="gt_table" data-quarto-disable-processing="false" data-quarto-bootstrap="false">
+  <thead>
+    <tr class="gt_heading">
+      <td colspan="11" class="gt_heading gt_title gt_font_normal" style><span class='gt_from_md'><strong>Table 2. Day 0-3 treatment and severity summary</strong></span></td>
+    </tr>
+    <tr class="gt_heading">
+      <td colspan="11" class="gt_heading gt_subtitle gt_font_normal gt_bottom_border" style>Observed longitudinal processes stratified by baseline carbapenem resistance.</td>
+    </tr>
+    <tr class="gt_col_headings gt_spanner_row">
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="2" colspan="1" scope="col" id="a::stub"></th>
+      <th class="gt_center gt_columns_top_border gt_column_spanner_outer" rowspan="1" colspan="4" scope="colgroup" id="Observed data support">
+        <div class="gt_column_spanner">Observed data support</div>
+      </th>
+      <th class="gt_center gt_columns_top_border gt_column_spanner_outer" rowspan="1" colspan="6" scope="colgroup" id="Treatment and clinical state summary">
+        <div class="gt_column_spanner">Treatment and clinical state summary</div>
+      </th>
+    </tr>
+    <tr class="gt_col_headings">
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1" style="background-color: #1E3A5F; color: #FFFFFF; font-weight: bold;" scope="col" id="Patient-days">Patient-days</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1" style="background-color: #1E3A5F; color: #FFFFFF; font-weight: bold;" scope="col" id="Treatment-observed">Treatment observed</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1" style="background-color: #1E3A5F; color: #FFFFFF; font-weight: bold;" scope="col" id="Severity-observed">Severity observed</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1" style="background-color: #1E3A5F; color: #FFFFFF; font-weight: bold;" scope="col" id="Micro-info-observed">Micro info observed</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1" style="background-color: #1E3A5F; color: #FFFFFF; font-weight: bold;" scope="col" id="Appropriate-treatment,-n-(%)">Appropriate treatment, n (%)</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1" style="background-color: #1E3A5F; color: #FFFFFF; font-weight: bold;" scope="col" id="Daily-severity-(primary),-mean-(SD)">Daily severity (primary), mean (SD)</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1" style="background-color: #1E3A5F; color: #FFFFFF; font-weight: bold;" scope="col" id="Daily-severity-(alternative),-mean-(SD)">Daily severity (alternative), mean (SD)</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1" style="background-color: #1E3A5F; color: #FFFFFF; font-weight: bold;" scope="col" id="Microbiology-info-available,-n-(%)">Microbiology info available, n (%)</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1" style="background-color: #1E3A5F; color: #FFFFFF; font-weight: bold;" scope="col" id="Prior-carbapenem-R-info,-n-(%)">Prior carbapenem-R info, n (%)</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1" style="background-color: #1E3A5F; color: #FFFFFF; font-weight: bold;" scope="col" id="Cumulative-appropriate-days,-median-[IQR]">Cumulative appropriate days, median [IQR]</th>
+    </tr>
+  </thead>
+  <tbody class="gt_table_body">
+    <tr class="gt_group_heading_row">
+      <th colspan="11" class="gt_group_heading" style="background-color: #D9E7F5; color: #17324D; font-weight: bold;" scope="colgroup" id="Non-resistant">Non-resistant</th>
+    </tr>
+    <tr class="gt_row_group_first"><th id="stub_1_1" scope="row" class="gt_row gt_center gt_stub">Day 0</th>
+<td headers="Non-resistant stub_1_1 Patient-days" class="gt_row gt_center">319</td>
+<td headers="Non-resistant stub_1_1 Treatment observed" class="gt_row gt_center">319</td>
+<td headers="Non-resistant stub_1_1 Severity observed" class="gt_row gt_center">319</td>
+<td headers="Non-resistant stub_1_1 Micro info observed" class="gt_row gt_center">319</td>
+<td headers="Non-resistant stub_1_1 Appropriate treatment, n (%)" class="gt_row gt_center">192 (60.2%)</td>
+<td headers="Non-resistant stub_1_1 Daily severity (primary), mean (SD)" class="gt_row gt_center">5.75 (2.44)</td>
+<td headers="Non-resistant stub_1_1 Daily severity (alternative), mean (SD)" class="gt_row gt_center">5.75 (2.44)</td>
+<td headers="Non-resistant stub_1_1 Microbiology info available, n (%)" class="gt_row gt_center">319 (100.0%)</td>
+<td headers="Non-resistant stub_1_1 Prior carbapenem-R info, n (%)" class="gt_row gt_center">0 (0.0%)</td>
+<td headers="Non-resistant stub_1_1 Cumulative appropriate days, median [IQR]" class="gt_row gt_center">1.00 [0.00, 1.00]</td></tr>
+    <tr><th id="stub_1_2" scope="row" class="gt_row gt_center gt_stub">Day 1</th>
+<td headers="Non-resistant stub_1_2 Patient-days" class="gt_row gt_center" style="background-color: #F7FAFC;">319</td>
+<td headers="Non-resistant stub_1_2 Treatment observed" class="gt_row gt_center" style="background-color: #F7FAFC;">319</td>
+<td headers="Non-resistant stub_1_2 Severity observed" class="gt_row gt_center" style="background-color: #F7FAFC;">282</td>
+<td headers="Non-resistant stub_1_2 Micro info observed" class="gt_row gt_center" style="background-color: #F7FAFC;">118</td>
+<td headers="Non-resistant stub_1_2 Appropriate treatment, n (%)" class="gt_row gt_center" style="background-color: #F7FAFC;">235 (73.7%)</td>
+<td headers="Non-resistant stub_1_2 Daily severity (primary), mean (SD)" class="gt_row gt_center" style="background-color: #F7FAFC;">3.16 (1.45)</td>
+<td headers="Non-resistant stub_1_2 Daily severity (alternative), mean (SD)" class="gt_row gt_center" style="background-color: #F7FAFC;">3.16 (1.45)</td>
+<td headers="Non-resistant stub_1_2 Microbiology info available, n (%)" class="gt_row gt_center" style="background-color: #F7FAFC;">118 (100.0%)</td>
+<td headers="Non-resistant stub_1_2 Prior carbapenem-R info, n (%)" class="gt_row gt_center" style="background-color: #F7FAFC;">3 (14.3%)</td>
+<td headers="Non-resistant stub_1_2 Cumulative appropriate days, median [IQR]" class="gt_row gt_center" style="background-color: #F7FAFC;">2.00 [0.00, 2.00]</td></tr>
+    <tr><th id="stub_1_3" scope="row" class="gt_row gt_center gt_stub">Day 2</th>
+<td headers="Non-resistant stub_1_3 Patient-days" class="gt_row gt_center">319</td>
+<td headers="Non-resistant stub_1_3 Treatment observed" class="gt_row gt_center">319</td>
+<td headers="Non-resistant stub_1_3 Severity observed" class="gt_row gt_center">289</td>
+<td headers="Non-resistant stub_1_3 Micro info observed" class="gt_row gt_center">214</td>
+<td headers="Non-resistant stub_1_3 Appropriate treatment, n (%)" class="gt_row gt_center">264 (82.8%)</td>
+<td headers="Non-resistant stub_1_3 Daily severity (primary), mean (SD)" class="gt_row gt_center">3.01 (1.48)</td>
+<td headers="Non-resistant stub_1_3 Daily severity (alternative), mean (SD)" class="gt_row gt_center">3.01 (1.48)</td>
+<td headers="Non-resistant stub_1_3 Microbiology info available, n (%)" class="gt_row gt_center">214 (100.0%)</td>
+<td headers="Non-resistant stub_1_3 Prior carbapenem-R info, n (%)" class="gt_row gt_center">4 (20.0%)</td>
+<td headers="Non-resistant stub_1_3 Cumulative appropriate days, median [IQR]" class="gt_row gt_center">3.00 [1.00, 3.00]</td></tr>
+    <tr><th id="stub_1_4" scope="row" class="gt_row gt_center gt_stub">Day 3</th>
+<td headers="Non-resistant stub_1_4 Patient-days" class="gt_row gt_center" style="background-color: #F7FAFC;">319</td>
+<td headers="Non-resistant stub_1_4 Treatment observed" class="gt_row gt_center" style="background-color: #F7FAFC;">319</td>
+<td headers="Non-resistant stub_1_4 Severity observed" class="gt_row gt_center" style="background-color: #F7FAFC;">295</td>
+<td headers="Non-resistant stub_1_4 Micro info observed" class="gt_row gt_center" style="background-color: #F7FAFC;">254</td>
+<td headers="Non-resistant stub_1_4 Appropriate treatment, n (%)" class="gt_row gt_center" style="background-color: #F7FAFC;">284 (89.0%)</td>
+<td headers="Non-resistant stub_1_4 Daily severity (primary), mean (SD)" class="gt_row gt_center" style="background-color: #F7FAFC;">2.90 (1.55)</td>
+<td headers="Non-resistant stub_1_4 Daily severity (alternative), mean (SD)" class="gt_row gt_center" style="background-color: #F7FAFC;">2.90 (1.55)</td>
+<td headers="Non-resistant stub_1_4 Microbiology info available, n (%)" class="gt_row gt_center" style="background-color: #F7FAFC;">254 (100.0%)</td>
+<td headers="Non-resistant stub_1_4 Prior carbapenem-R info, n (%)" class="gt_row gt_center" style="background-color: #F7FAFC;">4 (36.4%)</td>
+<td headers="Non-resistant stub_1_4 Cumulative appropriate days, median [IQR]" class="gt_row gt_center" style="background-color: #F7FAFC;">4.00 [2.00, 4.00]</td></tr>
+    <tr class="gt_group_heading_row">
+      <th colspan="11" class="gt_group_heading" style="background-color: #D9E7F5; color: #17324D; font-weight: bold;" scope="colgroup" id="Resistant">Resistant</th>
+    </tr>
+    <tr class="gt_row_group_first"><th id="stub_1_5" scope="row" class="gt_row gt_center gt_stub">Day 0</th>
+<td headers="Resistant stub_1_5 Patient-days" class="gt_row gt_center">141</td>
+<td headers="Resistant stub_1_5 Treatment observed" class="gt_row gt_center">141</td>
+<td headers="Resistant stub_1_5 Severity observed" class="gt_row gt_center">141</td>
+<td headers="Resistant stub_1_5 Micro info observed" class="gt_row gt_center">141</td>
+<td headers="Resistant stub_1_5 Appropriate treatment, n (%)" class="gt_row gt_center">57 (40.4%)</td>
+<td headers="Resistant stub_1_5 Daily severity (primary), mean (SD)" class="gt_row gt_center">5.88 (2.27)</td>
+<td headers="Resistant stub_1_5 Daily severity (alternative), mean (SD)" class="gt_row gt_center">5.88 (2.27)</td>
+<td headers="Resistant stub_1_5 Microbiology info available, n (%)" class="gt_row gt_center">141 (100.0%)</td>
+<td headers="Resistant stub_1_5 Prior carbapenem-R info, n (%)" class="gt_row gt_center">141 (100.0%)</td>
+<td headers="Resistant stub_1_5 Cumulative appropriate days, median [IQR]" class="gt_row gt_center">0.00 [0.00, 1.00]</td></tr>
+    <tr><th id="stub_1_6" scope="row" class="gt_row gt_center gt_stub">Day 1</th>
+<td headers="Resistant stub_1_6 Patient-days" class="gt_row gt_center" style="background-color: #F7FAFC;">141</td>
+<td headers="Resistant stub_1_6 Treatment observed" class="gt_row gt_center" style="background-color: #F7FAFC;">141</td>
+<td headers="Resistant stub_1_6 Severity observed" class="gt_row gt_center" style="background-color: #F7FAFC;">126</td>
+<td headers="Resistant stub_1_6 Micro info observed" class="gt_row gt_center" style="background-color: #F7FAFC;">50</td>
+<td headers="Resistant stub_1_6 Appropriate treatment, n (%)" class="gt_row gt_center" style="background-color: #F7FAFC;">67 (47.5%)</td>
+<td headers="Resistant stub_1_6 Daily severity (primary), mean (SD)" class="gt_row gt_center" style="background-color: #F7FAFC;">3.12 (1.16)</td>
+<td headers="Resistant stub_1_6 Daily severity (alternative), mean (SD)" class="gt_row gt_center" style="background-color: #F7FAFC;">3.12 (1.16)</td>
+<td headers="Resistant stub_1_6 Microbiology info available, n (%)" class="gt_row gt_center" style="background-color: #F7FAFC;">50 (100.0%)</td>
+<td headers="Resistant stub_1_6 Prior carbapenem-R info, n (%)" class="gt_row gt_center" style="background-color: #F7FAFC;">24 (92.3%)</td>
+<td headers="Resistant stub_1_6 Cumulative appropriate days, median [IQR]" class="gt_row gt_center" style="background-color: #F7FAFC;">0.00 [0.00, 2.00]</td></tr>
+    <tr><th id="stub_1_7" scope="row" class="gt_row gt_center gt_stub">Day 2</th>
+<td headers="Resistant stub_1_7 Patient-days" class="gt_row gt_center">141</td>
+<td headers="Resistant stub_1_7 Treatment observed" class="gt_row gt_center">141</td>
+<td headers="Resistant stub_1_7 Severity observed" class="gt_row gt_center">126</td>
+<td headers="Resistant stub_1_7 Micro info observed" class="gt_row gt_center">93</td>
+<td headers="Resistant stub_1_7 Appropriate treatment, n (%)" class="gt_row gt_center">84 (59.6%)</td>
+<td headers="Resistant stub_1_7 Daily severity (primary), mean (SD)" class="gt_row gt_center">3.09 (1.53)</td>
+<td headers="Resistant stub_1_7 Daily severity (alternative), mean (SD)" class="gt_row gt_center">3.09 (1.53)</td>
+<td headers="Resistant stub_1_7 Microbiology info available, n (%)" class="gt_row gt_center">93 (100.0%)</td>
+<td headers="Resistant stub_1_7 Prior carbapenem-R info, n (%)" class="gt_row gt_center">19 (100.0%)</td>
+<td headers="Resistant stub_1_7 Cumulative appropriate days, median [IQR]" class="gt_row gt_center">1.00 [0.00, 3.00]</td></tr>
+    <tr><th id="stub_1_8" scope="row" class="gt_row gt_center gt_stub">Day 3</th>
+<td headers="Resistant stub_1_8 Patient-days" class="gt_row gt_center" style="background-color: #F7FAFC;">141</td>
+<td headers="Resistant stub_1_8 Treatment observed" class="gt_row gt_center" style="background-color: #F7FAFC;">141</td>
+<td headers="Resistant stub_1_8 Severity observed" class="gt_row gt_center" style="background-color: #F7FAFC;">126</td>
+<td headers="Resistant stub_1_8 Micro info observed" class="gt_row gt_center" style="background-color: #F7FAFC;">115</td>
+<td headers="Resistant stub_1_8 Appropriate treatment, n (%)" class="gt_row gt_center" style="background-color: #F7FAFC;">103 (73.0%)</td>
+<td headers="Resistant stub_1_8 Daily severity (primary), mean (SD)" class="gt_row gt_center" style="background-color: #F7FAFC;">2.94 (1.26)</td>
+<td headers="Resistant stub_1_8 Daily severity (alternative), mean (SD)" class="gt_row gt_center" style="background-color: #F7FAFC;">2.94 (1.26)</td>
+<td headers="Resistant stub_1_8 Microbiology info available, n (%)" class="gt_row gt_center" style="background-color: #F7FAFC;">115 (100.0%)</td>
+<td headers="Resistant stub_1_8 Prior carbapenem-R info, n (%)" class="gt_row gt_center" style="background-color: #F7FAFC;">14 (100.0%)</td>
+<td headers="Resistant stub_1_8 Cumulative appropriate days, median [IQR]" class="gt_row gt_center" style="background-color: #F7FAFC;">2.00 [0.00, 4.00]</td></tr>
+  </tbody>
+  <tfoot>
+    <tr class="gt_sourcenotes">
+      <td class="gt_sourcenote" colspan="11"><span class='gt_from_md'>Primary severity uses the main <code>L_t</code> definition; alternative severity uses the sensitivity-analysis <code>L_t</code> definition.</span></td>
+    </tr>
+    <tr class="gt_sourcenotes">
+      <td class="gt_sourcenote" colspan="11"><span class='gt_from_md'><code>Patient-days</code> is the total number of rows in that group/day stratum; the three <code>observed</code> columns show the non-missing denominators used for the corresponding summaries.</span></td>
+    </tr>
+  </tfoot>
+</table>
+</div>
+</body>
+</html>

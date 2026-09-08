@@ -1,0 +1,97 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1120" viewBox="0 0 1600 1120">
+  <defs>
+    <style>
+      .title { font-family: Georgia, "Times New Roman", serif; font-size: 42px; font-weight: 700; fill: #111; }
+      .label { font-family: Georgia, "Times New Roman", serif; font-size: 28px; fill: #222; }
+      .small { font-family: Georgia, "Times New Roman", serif; font-size: 22px; fill: #222; }
+      .tablehead { font-family: Georgia, "Times New Roman", serif; font-size: 28px; font-weight: 700; fill: #222; }
+      .cellhead { font-family: Georgia, "Times New Roman", serif; font-size: 23px; font-weight: 400; fill: #222; }
+      .cell { font-family: Georgia, "Times New Roman", serif; font-size: 22px; fill: #222; }
+      .foot { font-family: Georgia, "Times New Roman", serif; font-size: 18px; fill: #222; }
+      .line { stroke: #222; stroke-width: 2.3; fill: none; }
+      .thin { stroke: #333; stroke-width: 1.6; fill: none; }
+      .arrow { marker-end: url(#arrow); }
+    </style>
+    <marker id="arrow" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L10,4 L0,8 z" fill="#222"/>
+    </marker>
+  </defs>
+
+  <rect x="0" y="0" width="1600" height="1120" fill="#fff"/>
+  <text x="110" y="95" class="title">Timeline of measurements</text>
+  <text x="165" y="165" class="label" font-style="italic">C, A, L0</text>
+  <text x="455" y="165" class="label" font-style="italic">L0, M0</text>
+  <text x="690" y="165" class="label" font-style="italic">L1, M1</text>
+  <text x="980" y="165" class="label" font-style="italic">L2, M2</text>
+  <text x="1240" y="165" class="label" font-style="italic">L3, M3</text>
+  <text x="1460" y="165" class="label" font-style="italic">Y</text>
+  <line x1="205" y1="190" x2="205" y2="465" class="line"/>
+  <line x1="470" y1="190" x2="470" y2="465" class="line"/>
+  <line x1="715" y1="190" x2="715" y2="465" class="line"/>
+  <line x1="1005" y1="190" x2="1005" y2="465" class="line"/>
+  <line x1="1270" y1="190" x2="1270" y2="465" class="line"/>
+  <line x1="1500" y1="190" x2="1500" y2="465" class="line"/>
+  <line x1="470" y1="300" x2="1270" y2="300" class="line arrow"/>
+  <text x="775" y="250" text-anchor="middle" class="label">Daily clinical state and appropriate-treatment process</text>
+  <text x="775" y="286" text-anchor="middle" class="label">measured during the Day 0-3 mediation window</text>
+  <line x1="205" y1="390" x2="1500" y2="390" class="line arrow"/>
+  <text x="840" y="352" text-anchor="middle" class="label">Day 0-3 longitudinal mediation window</text>
+  <text x="840" y="440" text-anchor="middle" class="label">Follow-up for 60-day mortality</text>
+  <line x1="165" y1="450" x2="1530" y2="450" class="line arrow"/>
+  <text x="160" y="508" class="label">Baseline</text>
+  <text x="435" y="508" class="label">Day 0</text>
+  <text x="684" y="508" class="label">Day 1</text>
+  <text x="973" y="508" class="label">Day 2</text>
+  <text x="1238" y="508" class="label">Day 3</text>
+  <text x="1454" y="508" class="label">Day 60</text>
+  <text x="105" y="610" class="tablehead">Variables measured at each time point</text>
+  <rect x="105" y="630" width="1430" height="392" class="line" fill="none"/>
+  <line x1="105" y1="710" x2="1535" y2="710" class="thin"/>
+  <line x1="105" y1="762" x2="1535" y2="762" class="thin"/>
+  <line x1="105" y1="814" x2="1535" y2="814" class="thin"/>
+  <line x1="105" y1="866" x2="1535" y2="866" class="thin"/>
+  <line x1="105" y1="918" x2="1535" y2="918" class="thin"/>
+  <line x1="105" y1="970" x2="1535" y2="970" class="thin"/>
+  <line x1="240" y1="630" x2="240" y2="1022" class="thin"/>
+  <line x1="500" y1="630" x2="500" y2="1022" class="thin"/>
+  <line x1="770" y1="630" x2="770" y2="1022" class="thin"/>
+  <line x1="1360" y1="630" x2="1360" y2="1022" class="thin"/>
+  <text x="172" y="684" text-anchor="middle" class="cellhead">Time point</text>
+  <text x="370" y="684" text-anchor="middle" class="cellhead">Exposure</text>
+  <text x="635" y="684" text-anchor="middle" class="cellhead">Mediator</text>
+  <text x="1065" y="684" text-anchor="middle" class="cellhead">Time-varying clinical state</text>
+  <text x="1448" y="684" text-anchor="middle" class="cellhead">Outcome</text>
+  <text x="172" y="744" text-anchor="middle" class="cell">Baseline</text>
+  <text x="370" y="744" text-anchor="middle" class="cell" font-style="italic">A</text>
+  <text x="635" y="744" text-anchor="middle" class="cell">-</text>
+  <text x="1065" y="744" text-anchor="middle" class="cell" font-style="italic">L0</text>
+  <text x="1448" y="744" text-anchor="middle" class="cell">-</text>
+  <text x="172" y="796" text-anchor="middle" class="cell">Day 0</text>
+  <text x="370" y="796" text-anchor="middle" class="cell" font-style="italic">A</text>
+  <text x="635" y="796" text-anchor="middle" class="cell" font-style="italic">M0</text>
+  <text x="1065" y="796" text-anchor="middle" class="cell" font-style="italic">L0</text>
+  <text x="1448" y="796" text-anchor="middle" class="cell">-</text>
+  <text x="172" y="848" text-anchor="middle" class="cell">Day 1</text>
+  <text x="370" y="848" text-anchor="middle" class="cell" font-style="italic">A</text>
+  <text x="635" y="848" text-anchor="middle" class="cell" font-style="italic">M1</text>
+  <text x="1065" y="848" text-anchor="middle" class="cell" font-style="italic">L1</text>
+  <text x="1448" y="848" text-anchor="middle" class="cell">-</text>
+  <text x="172" y="900" text-anchor="middle" class="cell">Day 2</text>
+  <text x="370" y="900" text-anchor="middle" class="cell" font-style="italic">A</text>
+  <text x="635" y="900" text-anchor="middle" class="cell" font-style="italic">M2</text>
+  <text x="1065" y="900" text-anchor="middle" class="cell" font-style="italic">L2</text>
+  <text x="1448" y="900" text-anchor="middle" class="cell">-</text>
+  <text x="172" y="952" text-anchor="middle" class="cell">Day 3</text>
+  <text x="370" y="952" text-anchor="middle" class="cell" font-style="italic">A</text>
+  <text x="635" y="952" text-anchor="middle" class="cell" font-style="italic">M3</text>
+  <text x="1065" y="952" text-anchor="middle" class="cell" font-style="italic">L3</text>
+  <text x="1448" y="952" text-anchor="middle" class="cell">-</text>
+  <text x="172" y="1004" text-anchor="middle" class="cell">Day 60</text>
+  <text x="370" y="1004" text-anchor="middle" class="cell" font-style="italic">A</text>
+  <text x="635" y="1004" text-anchor="middle" class="cell">-</text>
+  <text x="1065" y="1004" text-anchor="middle" class="cell">-</text>
+  <text x="1448" y="1004" text-anchor="middle" class="cell" font-style="italic">Y</text>
+  <text x="105" y="1052" class="foot">V = baseline covariates; A = baseline carbapenem resistance; L0-L3 = daily severity states; M0-M3 = daily appropriate treatment; Y = 60-day mortality.</text>
+  <text x="105" y="1077" class="foot">The Day 0-3 mediation window captures the early treatment process after baseline microbiologic resistance status is defined.</text>
+  <text x="105" y="1100" class="foot">This figure is generated directly from code in the manuscript pipeline and is not imported from a static asset.</text>
+</svg>
