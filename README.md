@@ -22,7 +22,7 @@ Make sure R and RStudio are installed on your computer:
 Install the R packages used by this workflow:
 
 ```r
-install.packages(c("readxl", "ggplot2", "gt"))
+install.packages(c("readxl", "ggplot2", "gt", "glmnet", "mice"))
 ```
 
 #### Step 2: Obtain the approved clinical data files
@@ -82,6 +82,9 @@ The following files are written to `step00_data_prep/`:
 - `analysis_panel_long_day0_day3.csv`: Day 0--3 participant-day panel.
 - `analysis_panel_wide_for_gformula.csv`: participant-level analysis dataset.
 - `censoring_and_daily_event_summary.csv`: daily censoring, death and information summaries.
+- `diagnostic_baseline_treatment_consistency.csv`: comparison of the symptom-day treatment field and Day 0 mediator.
+- `diagnostic_excel_import_warnings.csv`: grouped source-file type warnings.
+- `diagnostic_temporal_ordering_assumptions.csv`: status of the assumed `L_t`/`M_t` ordering.
 
 ---
 
@@ -153,6 +156,10 @@ The main analysis writes g-formula estimates and diagnostic tables to `step03_ma
 - `table3_main_gformula_estimates.csv`
 - `diagnostic_positivity_by_day.csv`
 - `diagnostic_positivity_by_history.csv`
+- `diagnostic_exposure_support_by_stratum.csv`
+- `diagnostic_exposure_support_site_by_bacteria.csv`
+- `diagnostic_exposure_propensity_summary.csv`
+- `diagnostic_exposure_propensity_individual.csv`
 
 #### Sensitivity analyses
 
@@ -162,16 +169,53 @@ The workflow writes the implemented sensitivity-analysis results to:
 step04_sensitivity/table4_sensitivity_analyses.csv
 ```
 
-The current script runs three alternatives: the alternative severity variable; a model without lagged mediator history; and a model including the daily microbiology-information proxy.
+The sensitivity runner covers distinct uncertainty domains rather than varying a
+single model switch: alternative severity measurement; treatment-process and
+outcome-model specifications; an early treatment-window estimand; restriction
+to culture-positive and major-pathogen populations; alternative country/site
+adjustment structures; probability-bound checks for near-positivity violations;
+restrictions to observed exposure-support populations; prior-day rather than
+same-day severity in treatment models; and multiple imputation of missing Day
+1--3 severity values. Each row reports
+whether it preserves the primary estimand, its input and complete-case sample
+sizes, the active covariates, status, and any failure message. Supporting files
+in `step04_sensitivity/` report exposure support and imputation-specific results.
 
 #### Bootstrap
 
-Bootstrap is not run unless requested. To run it, set the number of participant-level resamples and Monte Carlo simulations before starting the main script:
+The production default is 500 participant-level bootstrap resamples. Override
+the number of resamples or Monte Carlo simulations before starting the script:
 
 ```bash
 export REGARDVAP_N_BOOT=500
-export REGARDVAP_BOOT_NSIM=4000
+export REGARDVAP_BOOT_NSIM=10000
 ```
+
+Set `REGARDVAP_N_BOOT=0` only for a quick development run. Such a run does not
+provide sampling confidence intervals and must not be used for manuscript
+reporting. The primary nuisance models include site but not the exactly nested
+country indicator. The current dataset contains only six sites, so site-clustered
+bootstrap confidence intervals would be unreliable; centre structure is instead
+examined through prespecified country-only and no-centre-indicator adjustment
+analyses.
+
+Multiple imputation is enabled by default (`m=10`) as a missing-data sensitivity
+analysis. It can be configured with `REGARDVAP_MI_M` and
+`REGARDVAP_MI_NSIM`, or disabled for a development run with
+`REGARDVAP_RUN_MI=false`. The MI row is currently an average of the
+imputation-specific point estimates, not a Rubin-pooled confidence interval;
+the imputation-specific estimates and automatic predictor exclusions are saved
+for audit. Spreadsheet import warnings are grouped in
+`step00_data_prep/diagnostic_excel_import_warnings.csv` instead of being mixed
+with model-fitting warnings.
+
+The supplied analysis files identify calendar days but do not establish the
+intra-day order of daily-extrema severity and daily treatment. Consequently,
+the primary same-day `L_t -> M_t` analysis is conditional on an unverified
+ordering assumption. The workflow writes an explicit temporal-ordering audit
+and includes a prior-day-severity sensitivity analysis; definitive resolution
+requires treatment-administration and physiology timestamps or a prospectively
+agreed day-level ordering rule.
 
 The bootstrap outputs are written to `step03_main_gformula/`.
 

@@ -1,0 +1,17 @@
+"variable","stratum","n_A0","n_A1","n_total","both_exposure_levels_observed","minimum_exposure_cell"
+"country","Nepal",26,13,39,TRUE,13
+"country","Singapore",45,5,50,TRUE,5
+"country","Thailand",248,123,371,TRUE,123
+"site","NE001",26,13,39,TRUE,13
+"site","SG001",30,5,35,TRUE,5
+"site","SG002",15,0,15,FALSE,0
+"site","TH002",229,113,342,TRUE,113
+"site","TH015",11,3,14,TRUE,3
+"site","TH023",8,7,15,TRUE,7
+"icu_type","Medical ICU",96,48,144,TRUE,48
+"icu_type","Surgical ICU",223,93,316,TRUE,93
+"bacteria","Acinetobacter",17,83,100,TRUE,17
+"bacteria","Culture_neg",129,1,130,TRUE,1
+"bacteria","Klebsiella",73,41,114,TRUE,41
+"bacteria","Other",58,1,59,TRUE,1
+"bacteria","Pseudomonas",42,15,57,TRUE,15

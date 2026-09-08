@@ -1,0 +1,16 @@
+"sensitivity_id","analysis_family","subset","n_input","n_A0","n_A1","n_deaths","smallest_exposure_group"
+"S1_alternative_severity","measurement","all",460,319,141,169,141
+"S2_transition_without_lagged_M","treatment_process_model","all",460,319,141,169,141
+"S3_cumulative_treatment_outcome","outcome_model","all",460,319,141,169,141
+"S4_ever_treated_outcome","outcome_model","all",460,319,141,169,141
+"S5_early_treatment_window","alternative_estimand","all",460,319,141,169,141
+"S6_culture_positive","target_population","culture_positive",330,190,140,131,140
+"S7_major_pathogens","target_population","major_pathogens",271,132,139,115,132
+"S8_country_without_site","centre_structure","all",460,319,141,169,141
+"S9_without_centre_indicators","centre_structure","all",460,319,141,169,141
+"S10_probability_bounds_01","positivity_numerical_stability","all",460,319,141,169,141
+"S11_probability_bounds_025","positivity_numerical_stability","all",460,319,141,169,141
+"S12_marginal_exposure_support","exposure_positivity","marginal_exposure_support",255,119,136,109,119
+"S13_joint_exposure_support","exposure_positivity","joint_exposure_support",218,106,112,100,106
+"S14_prior_day_severity_for_treatment","temporal_ordering","all",460,319,141,169,141
+"S15_multiple_imputation_severity","missing_data","all",460,319,141,169,141

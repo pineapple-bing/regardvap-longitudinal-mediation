@@ -1,0 +1,2 @@
+"formula","model_type","n_fit","active_covariates","dropped_covariates"
+"A ~ age + male + charlson + site + icu_type + bacteria","glm_binomial",460,"age;male;charlson;site;icu_type;bacteria",""

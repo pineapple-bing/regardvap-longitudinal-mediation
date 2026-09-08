@@ -1,6 +1,9 @@
 "model","model_type","lambda_1se","n_fit"
-"0","glm_binomial",NA,404
-"1","ridge_binomial_glmnet",0.0633710421635126,404
-"2","glm_binomial",NA,404
-"3","glm_binomial",NA,404
+"M0","glm_binomial",NA,404
+"M1","ridge_binomial_glmnet",0.0633710421635126,404
+"M2","glm_binomial",NA,404
+"M3","glm_binomial",NA,404
+"L1","lm_gaussian",NA,404
+"L2","lm_gaussian",NA,404
+"L3","lm_gaussian",NA,404
 "Y","glm_binomial",NA,404

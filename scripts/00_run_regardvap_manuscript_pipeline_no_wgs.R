@@ -83,12 +83,16 @@ make_figure4 <- function(table3_path, out_dir) {
     panel = "Panel A. Counterfactual risks",
     label = c("R(1, G1)", "R(1, G0)", "R(0, G0)"),
     estimate = c(df$R_1_G1[1], df$R_1_G0[1], df$R_0_G0[1]),
+    lower = if (all(c("R_1_G1_lower_95", "R_1_G0_lower_95", "R_0_G0_lower_95") %in% names(df))) c(df$R_1_G1_lower_95[1], df$R_1_G0_lower_95[1], df$R_0_G0_lower_95[1]) else NA_real_,
+    upper = if (all(c("R_1_G1_upper_95", "R_1_G0_upper_95", "R_0_G0_upper_95") %in% names(df))) c(df$R_1_G1_upper_95[1], df$R_1_G0_upper_95[1], df$R_0_G0_upper_95[1]) else NA_real_,
     stringsAsFactors = FALSE
   )
   effect_df <- data.frame(
     panel = "Panel B. TE decomposition",
     label = c("TE", "IDE", "IIE"),
     estimate = c(df$TE[1], df$IDE[1], df$IIE[1]),
+    lower = if (all(c("TE_lower_95", "IDE_lower_95", "IIE_lower_95") %in% names(df))) c(df$TE_lower_95[1], df$IDE_lower_95[1], df$IIE_lower_95[1]) else NA_real_,
+    upper = if (all(c("TE_upper_95", "IDE_upper_95", "IIE_upper_95") %in% names(df))) c(df$TE_upper_95[1], df$IDE_upper_95[1], df$IIE_upper_95[1]) else NA_real_,
     stringsAsFactors = FALSE
   )
   plot_df <- rbind(risk_df, effect_df)
@@ -118,6 +122,9 @@ make_figure4 <- function(table3_path, out_dir) {
       axis.text.x = element_text(face = "bold"),
       strip.text = element_text(face = "bold")
     )
+  if (all(is.finite(plot_df$lower)) && all(is.finite(plot_df$upper))) {
+    fig <- fig + geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.18, linewidth = 0.7)
+  }
 
   png_path <- file.path(out_dir, "figure4_te_decomposition.png")
   csv_path <- file.path(out_dir, "figure4_te_decomposition_data.csv")
@@ -407,14 +414,24 @@ make_pretty_table2 <- function(input_csv, out_dir) {
 make_pretty_table3 <- function(input_csv, out_dir) {
   df <- read.csv(input_csv, stringsAsFactors = FALSE, check.names = FALSE)
 
+  estimate_ci <- function(name) {
+    lower <- paste0(name, "_lower_95")
+    upper <- paste0(name, "_upper_95")
+    if (all(c(lower, upper) %in% names(df))) {
+      sprintf("%.3f (%.3f to %.3f)", df[[name]], df[[lower]], df[[upper]])
+    } else {
+      sprintf("%.3f", df[[name]])
+    }
+  }
+
   display_df <- data.frame(
     `Complete cases` = df$n_complete,
-    `Risk under R(1, G1)` = sprintf("%.3f", df$R_1_G1),
-    `Risk under R(1, G0)` = sprintf("%.3f", df$R_1_G0),
-    `Risk under R(0, G0)` = sprintf("%.3f", df$R_0_G0),
-    `Total effect (TE)` = sprintf("%.3f", df$TE),
-    `Indirect effect (IIE)` = sprintf("%.3f", df$IIE),
-    `Direct effect (IDE)` = sprintf("%.3f", df$IDE),
+    `Risk under R(1, G1)` = estimate_ci("R_1_G1"),
+    `Risk under R(1, G0)` = estimate_ci("R_1_G0"),
+    `Risk under R(0, G0)` = estimate_ci("R_0_G0"),
+    `Total effect (TE)` = estimate_ci("TE"),
+    `Indirect effect (IIE)` = estimate_ci("IIE"),
+    `Direct effect (IDE)` = estimate_ci("IDE"),
     stringsAsFactors = FALSE,
     check.names = FALSE
   )
@@ -442,6 +459,11 @@ make_pretty_table3 <- function(input_csv, out_dir) {
     gt::tab_source_note(
       source_note = gt::md(
         "Effect decomposition is defined on the risk-difference scale: `TE = IIE + IDE`."
+      )
+    ) |>
+    gt::tab_source_note(
+      source_note = gt::md(
+        "Parentheses show patient-level bootstrap 95% percentile confidence intervals when bootstrap was enabled."
       )
     ) |>
     gt::tab_style(
@@ -483,9 +505,11 @@ make_pretty_table4 <- function(input_csv, out_dir) {
 
   display_df <- data.frame(
     Specification = df$Specification,
+    Family = if ("analysis_family" %in% names(df)) df$analysis_family else "model_specification",
+    `Primary estimand retained` = if ("same_estimand_as_primary" %in% names(df)) ifelse(df$same_estimand_as_primary, "Yes", "No") else "Unclear",
+    Population = if ("subset" %in% names(df)) df$subset else "all",
+    Status = if ("status" %in% names(df)) df$status else "ok",
     `Complete cases` = df$n_complete,
-    `Active covariates` = df$active_covars,
-    `Dropped covariates` = ifelse(df$dropped_covars == "", "-", df$dropped_covars),
     `Risk under R(1, G1)` = sprintf("%.3f", df$R_1_G1),
     `Risk under R(1, G0)` = sprintf("%.3f", df$R_1_G0),
     `Risk under R(0, G0)` = sprintf("%.3f", df$R_0_G0),
@@ -500,11 +524,11 @@ make_pretty_table4 <- function(input_csv, out_dir) {
     gt::gt(rowname_col = "Specification") |>
     gt::tab_header(
       title = gt::md("**Table 4. Sensitivity analyses for the longitudinal g-formula**"),
-      subtitle = "Alternative severity, mediator-history, and early-window specifications."
+      subtitle = "Measurement, model, target-population, centre-structure, exposure/mediator positivity, temporal-ordering, and missing-data analyses."
     ) |>
     gt::tab_spanner(
-      label = "Model diagnostics",
-      columns = c(`Complete cases`, `Active covariates`, `Dropped covariates`)
+      label = "Analysis definition and diagnostics",
+      columns = c(Family, `Primary estimand retained`, Population, Status, `Complete cases`)
     ) |>
     gt::tab_spanner(
       label = "Counterfactual risks",
@@ -517,7 +541,7 @@ make_pretty_table4 <- function(input_csv, out_dir) {
     gt::cols_align(align = "center", columns = everything()) |>
     gt::tab_source_note(
       source_note = gt::md(
-        "S1 changes the daily severity definition; S2 removes lagged mediator history; S3 restricts the mediator process to the early Day 0--1 window. The microbiology-information proxy is not included because it is incomplete and its same-day availability requires separate timestamp validation."
+        "Rows marked 'No' under primary estimand retained use an alternative treatment window or target population and should not be described as exact replications of the primary estimand. The microbiology-information proxy remains excluded pending timestamp validation."
       )
     ) |>
     gt::tab_style(
@@ -559,6 +583,28 @@ analysis_wide_path <- file.path(analysis_core_dir, "step00_data_prep", "analysis
 assert_file_exists(analysis_wide_path, "Longitudinal analysis panel")
 
 message_block("Collecting manuscript-structured outputs...")
+
+# 3.1
+copy_required(
+  file.path(analysis_core_dir, "step01_baseline", "table1_baseline_summary.csv"),
+  file.path(section_dirs[["sec31"]], "table1_baseline_summary.csv")
+)
+for (baseline_diagnostic in c("diagnostic_cohort_flow.csv", "diagnostic_baseline_treatment_consistency.csv")) {
+  baseline_src <- file.path(analysis_core_dir, "step00_data_prep", baseline_diagnostic)
+  if (file.exists(baseline_src)) {
+    copy_required(baseline_src, file.path(section_dirs[["sec31"]], baseline_diagnostic))
+  }
+}
+write_section_readme(
+  file.path(section_dirs[["sec31"]], "README_3.1.md"),
+  c(
+    "# 3.1 Study population and baseline characteristics",
+    "",
+    "- Table 1: table1_baseline_summary.csv",
+    "- Cohort flow: diagnostic_cohort_flow.csv",
+    "- Symptom-day versus Day 0 appropriate-treatment audit: diagnostic_baseline_treatment_consistency.csv"
+  )
+)
 
 # 3.2
 make_figure1_svg(file.path(section_dirs[["sec32"]], "figure1_timeline.svg"))
@@ -608,6 +654,41 @@ copy_required(
   file.path(analysis_core_dir, "step04_sensitivity", "table4_sensitivity_analyses.csv"),
   file.path(section_dirs[["sec33"]], "table4_sensitivity_analyses.csv")
 )
+for (support_file in c(
+  "diagnostic_sensitivity_support.csv",
+  "diagnostic_mi_imputation_estimates.csv",
+  "diagnostic_mi_logged_events.csv"
+)) {
+  support_src <- file.path(analysis_core_dir, "step04_sensitivity", support_file)
+  if (file.exists(support_src)) {
+    copy_required(support_src, file.path(section_dirs[["sec33"]], support_file))
+  }
+}
+for (bootstrap_file in c("bootstrap_percentile_ci.csv", "diagnostic_bootstrap_status.csv")) {
+  bootstrap_src <- file.path(analysis_core_dir, "step03_main_gformula", bootstrap_file)
+  if (file.exists(bootstrap_src)) {
+    copy_required(bootstrap_src, file.path(section_dirs[["sec33"]], bootstrap_file))
+  }
+}
+for (diagnostic_file in c(
+  "diagnostic_exposure_support_by_stratum.csv",
+  "diagnostic_exposure_support_site_by_bacteria.csv",
+  "diagnostic_exposure_propensity_summary.csv",
+  "diagnostic_exposure_propensity_individual.csv",
+  "diagnostic_exposure_propensity_model.csv",
+  "diagnostic_conditional_positivity.csv",
+  "diagnostic_prediction_fallbacks.csv",
+  "diagnostic_nuisance_model_types.csv"
+)) {
+  diagnostic_src <- file.path(analysis_core_dir, "step03_main_gformula", diagnostic_file)
+  if (file.exists(diagnostic_src)) {
+    copy_required(diagnostic_src, file.path(section_dirs[["sec33"]], diagnostic_file))
+  }
+}
+temporal_src <- file.path(analysis_core_dir, "step00_data_prep", "diagnostic_temporal_ordering_assumptions.csv")
+if (file.exists(temporal_src)) {
+  copy_required(temporal_src, file.path(section_dirs[["sec33"]], "diagnostic_temporal_ordering_assumptions.csv"))
+}
 figure4_files <- make_figure4(table3_source, section_dirs[["sec33"]])
 make_pretty_table3(
   file.path(section_dirs[["sec33"]], "table3_counterfactual_risks_te_ide_iie.csv"),
@@ -627,7 +708,9 @@ write_section_readme(
     "- Figure 4: figure4_te_decomposition.png",
     "- Table 4: table4_sensitivity_analyses.csv",
     "- Pretty Table 4 HTML: table4_sensitivity_analyses_pretty.html",
-    "- Supporting plotting data: figure4_te_decomposition_data.csv"
+    "- Supporting plotting data: figure4_te_decomposition_data.csv",
+    "- Diagnostics: sensitivity support, exposure propensity/support, temporal ordering, nuisance-model type, prediction truncation, MI events, and bootstrap status CSV files",
+    "- Bootstrap intervals: bootstrap_percentile_ci.csv (when enabled)"
   )
 )
 
@@ -663,7 +746,7 @@ write_section_readme(
     paste0("- ITT RDS: ", itt_rds_path),
     "",
     "All manuscript-facing figures in this pipeline are generated by code.",
-    "Baseline outputs are intentionally omitted in this version pending the separate baseline review."
+    "The baseline summary and its treatment-variable consistency audit are included in Section 3.1."
   )
 )
 

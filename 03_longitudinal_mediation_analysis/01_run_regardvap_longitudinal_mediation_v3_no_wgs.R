@@ -170,6 +170,7 @@ fit_binomial_model <- function(formula, data) {
   )
   separated <- !fit$converged ||
     any(grepl("probabilities numerically 0 or 1|did not converge", fit_warnings)) ||
+    anyNA(stats::coef(fit)) ||
     any(abs(stats::coef(fit)) > 20, na.rm = TRUE)
   if (!separated) {
     attr(fit, "fit_type") <- "glm_binomial"
@@ -208,10 +209,56 @@ fit_binomial_model <- function(formula, data) {
 }
 
 fit_gaussian_model <- function(formula, data) {
-  stats::lm(formula, data = data)
+  fit <- stats::lm(formula, data = data)
+  rank_deficient <- fit$rank < length(stats::coef(fit)) || anyNA(stats::coef(fit))
+  if (!rank_deficient) {
+    attr(fit, "fit_type") <- "lm_gaussian"
+    return(fit)
+  }
+
+  if (!requireNamespace("glmnet", quietly = TRUE)) {
+    stop(
+      "A Gaussian nuisance model is rank deficient. Install glmnet to use the ridge-penalized fallback.",
+      call. = FALSE
+    )
+  }
+  model_terms <- stats::delete.response(stats::terms(formula, data = data))
+  model_frame <- stats::model.frame(model_terms, data = data, na.action = stats::na.fail)
+  response_frame <- stats::model.frame(stats::terms(formula, data = data), data = data, na.action = stats::na.fail)
+  outcome <- stats::model.response(response_frame)
+  design <- stats::model.matrix(model_terms, model_frame)
+  design <- design[, colnames(design) != "(Intercept)", drop = FALSE]
+  nfolds <- min(5L, nrow(design))
+  if (nfolds < 3L) stop("Cannot fit Gaussian ridge fallback with fewer than three observations.", call. = FALSE)
+  ridge_fit <- glmnet::cv.glmnet(
+    design, outcome, family = "gaussian", alpha = 0,
+    nfolds = nfolds, type.measure = "deviance"
+  )
+  fitted <- as.numeric(stats::predict(ridge_fit, newx = design, s = "lambda.1se"))
+  residual_sigma <- sqrt(mean((outcome - fitted)^2, na.rm = TRUE))
+  if (!is.finite(residual_sigma) || residual_sigma <= 0) residual_sigma <- stats::sd(outcome, na.rm = TRUE)
+  structure(
+    list(
+      fit = ridge_fit,
+      terms = model_terms,
+      xlevels = stats::.getXlevels(model_terms, model_frame),
+      contrasts = attr(design, "contrasts"),
+      design_columns = colnames(design),
+      outcome_mean = mean(outcome, na.rm = TRUE),
+      residual_sigma = residual_sigma,
+      fit_type = "ridge_gaussian_glmnet",
+      lambda_1se = ridge_fit$lambda.1se
+    ),
+    class = "ridge_gaussian_model"
+  )
 }
 
-predict_binomial_prob <- function(model, newdata) {
+predict_binomial_prob <- function(model, newdata, lower = 0.001, upper = 0.999) {
+  if (!is.numeric(lower) || !is.numeric(upper) || length(lower) != 1L ||
+      length(upper) != 1L || is.na(lower) || is.na(upper) ||
+      lower < 0 || upper > 1 || lower >= upper) {
+    stop("Prediction probability bounds must satisfy 0 <= lower < upper <= 1.", call. = FALSE)
+  }
   if (inherits(model, "ridge_binomial_model")) {
     model_frame <- stats::model.frame(model$terms, newdata, xlev = model$xlevels, na.action = stats::na.pass)
     design <- stats::model.matrix(model$terms, model_frame, contrasts.arg = model$contrasts)
@@ -224,26 +271,44 @@ predict_binomial_prob <- function(model, newdata) {
     raw_p <- as.numeric(stats::predict(model$fit, newx = design, s = "lambda.1se", type = "response"))
     n_na <- sum(is.na(raw_p))
     raw_p[is.na(raw_p)] <- model$outcome_mean
-    n_truncated <- sum(raw_p < 0.001 | raw_p > 0.999)
-    p <- pmin(pmax(raw_p, 0.001), 0.999)
+    n_truncated <- sum(raw_p < lower | raw_p > upper)
+    p <- pmin(pmax(raw_p, lower), upper)
     attr(p, "prediction_diagnostics") <- c(n_na_prediction = n_na, n_probability_truncated = n_truncated)
     return(p)
   }
   raw_p <- as.numeric(suppressWarnings(stats::predict(model, newdata = newdata, type = "response")))
   n_na <- sum(is.na(raw_p))
   raw_p[is.na(raw_p)] <- mean(model$y, na.rm = TRUE)
-  n_truncated <- sum(raw_p < 0.001 | raw_p > 0.999)
-  p <- pmin(pmax(raw_p, 0.001), 0.999)
+  n_truncated <- sum(raw_p < lower | raw_p > upper)
+  p <- pmin(pmax(raw_p, lower), upper)
   attr(p, "prediction_diagnostics") <- c(n_na_prediction = n_na, n_probability_truncated = n_truncated)
   p
 }
 
 predict_gaussian_draw <- function(model, newdata, lower = -Inf, upper = Inf) {
-  mu <- suppressWarnings(stats::predict(model, newdata = newdata))
-  mu <- as.numeric(mu)
+  if (inherits(model, "ridge_gaussian_model")) {
+    model_frame <- stats::model.frame(model$terms, newdata, xlev = model$xlevels, na.action = stats::na.pass)
+    design <- stats::model.matrix(model$terms, model_frame, contrasts.arg = model$contrasts)
+    design <- design[, colnames(design) != "(Intercept)", drop = FALSE]
+    missing_cols <- setdiff(model$design_columns, colnames(design))
+    if (length(missing_cols) > 0L) {
+      design <- cbind(
+        design,
+        matrix(0, nrow = nrow(design), ncol = length(missing_cols),
+          dimnames = list(NULL, missing_cols))
+      )
+    }
+    design <- design[, model$design_columns, drop = FALSE]
+    mu <- as.numeric(stats::predict(model$fit, newx = design, s = "lambda.1se"))
+    fallback_mean <- model$outcome_mean
+    sigma <- model$residual_sigma
+  } else {
+    mu <- as.numeric(suppressWarnings(stats::predict(model, newdata = newdata)))
+    fallback_mean <- mean(model$model[[1]], na.rm = TRUE)
+    sigma <- summary(model)$sigma
+  }
   n_na <- sum(is.na(mu))
-  mu[is.na(mu)] <- mean(model$model[[1]], na.rm = TRUE)
-  sigma <- summary(model)$sigma
+  mu[is.na(mu)] <- fallback_mean
   if (is.na(sigma) || sigma <= 0) sigma <- 0.25
   draw <- stats::rnorm(nrow(newdata), mean = mu, sd = sigma)
   n_truncated <- sum(draw < lower | draw > upper)
@@ -257,6 +322,7 @@ estimate_risk <- function(sim_df) {
 }
 
 summarize_continuous <- function(df, var, label, stat = c("mean_sd", "median_iqr")) {
+  if (!var %in% names(df)) stop("Table variable not found: ", var, call. = FALSE)
   stat <- match.arg(stat)
   g0 <- df[df$A == 0, var]
   g1 <- df[df$A == 1, var]
@@ -276,6 +342,7 @@ summarize_continuous <- function(df, var, label, stat = c("mean_sd", "median_iqr
 }
 
 summarize_binary <- function(df, var, label, positive_value = 1) {
+  if (!var %in% names(df)) stop("Table variable not found: ", var, call. = FALSE)
   d <- df[[var]]
   denom_all <- sum(!is.na(d))
   denom0 <- sum(!is.na(d[df$A == 0]))
@@ -295,6 +362,7 @@ summarize_binary <- function(df, var, label, positive_value = 1) {
 }
 
 summarize_categorical <- function(df, var, label) {
+  if (!var %in% names(df)) stop("Table variable not found: ", var, call. = FALSE)
   x <- safe_char(df[[var]])
   levs <- sort(unique(x[!is.na(x)]))
   out <- vector("list", length(levs))
@@ -340,9 +408,49 @@ if (!file.exists(day60_path)) stop("Missing file: ", day60_path)
 if (!file.exists(severity_path)) stop("Missing file: ", severity_path)
 if (!file.exists(itt_rds_path)) stop("Missing file: ", itt_rds_path)
 
-day03_raw <- read_excel(day03_path)
-day60_raw <- read_excel(day60_path)
-severity_raw <- read_excel(severity_path)
+capture_import_warnings <- function(expr, source_name) {
+  messages <- character(0)
+  value <- withCallingHandlers(
+    expr,
+    warning = function(w) {
+      messages <<- c(messages, conditionMessage(w))
+      invokeRestart("muffleWarning")
+    }
+  )
+  list(
+    data = value,
+    warnings = if (length(messages)) {
+      warning_type <- sub(" in [A-Z]+[0-9]+ / R[0-9]+C[0-9]+:.*$", "", messages)
+      groups <- split(messages, warning_type)
+      data.frame(
+        warning_type = names(groups),
+        count = vapply(groups, length, integer(1)),
+        example = vapply(groups, function(x) x[1], character(1)),
+        stringsAsFactors = FALSE
+      )
+    } else {
+      data.frame(warning_type = character(0), count = integer(0), example = character(0), stringsAsFactors = FALSE)
+    },
+    source = source_name
+  )
+}
+
+day03_import <- capture_import_warnings(read_excel(day03_path), "day0_day3")
+day60_import <- capture_import_warnings(read_excel(day60_path), "day0_day60")
+severity_import <- capture_import_warnings(read_excel(severity_path), "severity")
+day03_raw <- day03_import$data
+day60_raw <- day60_import$data
+severity_raw <- severity_import$data
+import_warning_rows <- lapply(list(day03_import, day60_import, severity_import), function(x) {
+  if (!nrow(x$warnings)) return(NULL)
+  cbind(source = x$source, x$warnings, stringsAsFactors = FALSE)
+})
+import_warnings <- do.call(rbind, import_warning_rows)
+if (is.null(import_warnings)) {
+  import_warnings <- data.frame(
+    source = character(0), warning_type = character(0), count = integer(0), example = character(0)
+  )
+}
 itt_raw <- readRDS(itt_rds_path)
 
 required_day_cols <- c(
@@ -382,6 +490,7 @@ day03$subjid <- safe_char(day03$subjid)
 day03$day <- clean_num(day03$day_from_day0)
 day03$A <- clean_binary01(day03$baseline_carba_r)
 day03$M <- clean_binary01(day03$treatment_any_appropriate_active_primary)
+day03$baseline_appropriate <- clean_binary01(day03$baseline_appropriateabx_on_symptomdate)
 day03$cum_appropriate <- clean_num(day03$treatment_cum_appropriate_days)
 day03$alive_at_start_of_day <- clean_binary01(day03$alive_at_start_of_day)
 day03$under_followup_on_day <- clean_binary01(day03$under_followup_on_day)
@@ -531,6 +640,38 @@ analysis$bacteria_simple <- fill_missing_factor(ifelse(
   safe_char(analysis$bacteria),
   "Other_or_Culture_neg"
 ))
+
+baseline_treatment_consistency <- panel[
+  panel$day == 0 & !duplicated(panel$subjid),
+  c("subjid", "A", "baseline_appropriate", "M"), drop = FALSE
+]
+baseline_treatment_consistency$discordant <- with(
+  baseline_treatment_consistency,
+  !is.na(baseline_appropriate) & !is.na(M) & baseline_appropriate != M
+)
+
+temporal_ordering_audit <- data.frame(
+  component = c("L0", "L1-L3", "M0-M3", "Primary ordering", "Sensitivity ordering"),
+  operational_definition = c(
+    "Baseline SOFA",
+    "Daily extrema/support: maximum temperature and heart rate; minimum MAP and SpO2/FiO2; any inotrope or mechanical ventilation",
+    "Any appropriate active treatment during the calendar day",
+    "Same-day L_t predicts M_t",
+    "Prior-day L_(t-1) predicts M_t for t>=1"
+  ),
+  timestamp_evidence = c(
+    "Baseline/day index only", "Calendar day only; no intra-day measurement time in supplied analysis file",
+    "Calendar day only; no intra-day administration time in supplied analysis file",
+    "Not verified", "Day-level ordering is explicit but remains an approximation"
+  ),
+  interpretation = c(
+    "Usable as baseline state", "May include physiology occurring after treatment initiation",
+    "Cannot establish whether treatment preceded daily extrema",
+    "Potential same-day reverse causation/post-treatment adjustment; primary analysis is conditional on this assumption",
+    "Robustness analysis that avoids conditioning M_t on same-day daily extrema"
+  ),
+  stringsAsFactors = FALSE
+)
 make_table1 <- function(panel_df) {
   base <- panel_df[panel_df$day == 0, , drop = FALSE]
   base <- base[!duplicated(base$subjid), , drop = FALSE]
@@ -776,8 +917,10 @@ run_gformula_legacy <- function(analysis_df, mediator_history = c("lagged", "non
 
     y_dat <- sim
     y_dat$A <- a_for_y
-    py <- predict_binomial_prob(y_fit, y_dat)
-    sim$Y <- stats::rbinom(nrow(sim), 1, py)
+    # For a marginal risk, average the fitted outcome probabilities. Drawing an
+    # additional Bernoulli outcome adds Monte Carlo noise without changing the
+    # target expectation.
+    sim$Y <- predict_binomial_prob(y_fit, y_dat)
     sim
   }
 
@@ -957,9 +1100,34 @@ if (is.na(main_nsim) || main_nsim < 10000L) {
   stop("REGARDVAP_NSIM must be at least 10000 for the primary Monte Carlo analysis.", call. = FALSE)
 }
 
-main_gf <- run_gformula(analysis, mediator_history = "lagged", lt_variant = "main", include_ot = FALSE, horizon = 3L, nsim = main_nsim)
+main_gf <- run_gformula(
+  analysis,
+  mediator_history = "lagged",
+  mediator_severity_timing = "same_day",
+  outcome_mediator_summary = "full_history",
+  lt_variant = "main",
+  include_ot = FALSE,
+  horizon = 3L,
+  covariates = primary_covariates(),
+  probability_bounds = c(0.001, 0.999),
+  nsim = main_nsim
+)
 table3 <- main_gf[, c("n_complete", "R_1_G1", "R_1_G0", "R_0_G0", "TE", "IDE", "IIE")]
-table4 <- run_prespecified_sensitivities(analysis, nsim = main_nsim)
+run_mi <- tolower(Sys.getenv("REGARDVAP_RUN_MI", unset = "true")) %in% c("1", "true", "yes")
+mi_m <- suppressWarnings(as.integer(Sys.getenv("REGARDVAP_MI_M", unset = "10")))
+if (is.na(mi_m) || mi_m < 2L) mi_m <- 10L
+mi_nsim <- suppressWarnings(as.integer(Sys.getenv("REGARDVAP_MI_NSIM", unset = "10000")))
+if (is.na(mi_nsim) || mi_nsim < 1000L) mi_nsim <- 10000L
+table4 <- run_prespecified_sensitivities(
+  analysis,
+  nsim = main_nsim,
+  run_multiple_imputation = run_mi,
+  mi_m = mi_m,
+  mi_nsim = mi_nsim
+)
+sensitivity_support <- attr(table4, "support_diagnostics")
+sensitivity_mi_details <- attr(table4, "mi_imputation_estimates")
+sensitivity_mi_events <- attr(table4, "mi_logged_events")
 mc_stability <- run_monte_carlo_stability(analysis, nsim = main_nsim)
 write_cohort_diagnostics(panel, analysis, step_dirs[["step00"]])
 write_complete_case_diagnostics(analysis, step_dirs[["step03"]], horizon = 3L)
@@ -969,13 +1137,18 @@ utils::write.csv(attr(main_gf, "nuisance_model_diagnostics"), file.path(step_dir
 utils::write.csv(attr(main_gf, "conditional_positivity"), file.path(step_dirs[["step03"]], "diagnostic_conditional_positivity.csv"), row.names = FALSE)
 utils::write.csv(attr(main_gf, "prediction_diagnostics"), file.path(step_dirs[["step03"]], "diagnostic_prediction_fallbacks.csv"), row.names = FALSE)
 
-bootstrap_n <- suppressWarnings(as.integer(Sys.getenv("REGARDVAP_N_BOOT", unset = "0")))
+bootstrap_n <- suppressWarnings(as.integer(Sys.getenv("REGARDVAP_N_BOOT", unset = "500")))
 if (!is.na(bootstrap_n) && bootstrap_n > 0L) {
-  bootstrap_nsim <- suppressWarnings(as.integer(Sys.getenv("REGARDVAP_BOOT_NSIM", unset = "4000")))
-  if (is.na(bootstrap_nsim) || bootstrap_nsim < 100L) bootstrap_nsim <- 4000L
+  bootstrap_nsim <- suppressWarnings(as.integer(Sys.getenv("REGARDVAP_BOOT_NSIM", unset = "10000")))
+  if (is.na(bootstrap_nsim) || bootstrap_nsim < 100L) bootstrap_nsim <- 10000L
   bootstrap_results <- bootstrap_gformula(analysis, B = bootstrap_n, nsim = bootstrap_nsim)
+  bootstrap_ci <- bootstrap_percentile_ci(bootstrap_results)
   utils::write.csv(bootstrap_results, file.path(step_dirs[["step03"]], "bootstrap_effect_estimates.csv"), row.names = FALSE)
-  utils::write.csv(bootstrap_percentile_ci(bootstrap_results), file.path(step_dirs[["step03"]], "bootstrap_percentile_ci.csv"), row.names = FALSE)
+  utils::write.csv(bootstrap_ci, file.path(step_dirs[["step03"]], "bootstrap_percentile_ci.csv"), row.names = FALSE)
+  for (estimand in bootstrap_ci$estimand) {
+    table3[[paste0(estimand, "_lower_95")]] <- bootstrap_ci$lower_95[bootstrap_ci$estimand == estimand][1]
+    table3[[paste0(estimand, "_upper_95")]] <- bootstrap_ci$upper_95[bootstrap_ci$estimand == estimand][1]
+  }
   bootstrap_summary <- data.frame(
     requested_resamples = bootstrap_n,
     successful_resamples = sum(bootstrap_results$status == "ok"),
@@ -997,6 +1170,9 @@ utils::write.csv(bootstrap_summary, file.path(step_dirs[["step03"]], "diagnostic
 utils::write.csv(panel, file.path(step_dirs[["step00"]], "analysis_panel_long_day0_day3.csv"), row.names = FALSE)
 utils::write.csv(analysis, file.path(step_dirs[["step00"]], "analysis_panel_wide_for_gformula.csv"), row.names = FALSE)
 utils::write.csv(source_audit, file.path(step_dirs[["step00"]], "data_sources_used.csv"), row.names = FALSE)
+utils::write.csv(import_warnings, file.path(step_dirs[["step00"]], "diagnostic_excel_import_warnings.csv"), row.names = FALSE)
+utils::write.csv(baseline_treatment_consistency, file.path(step_dirs[["step00"]], "diagnostic_baseline_treatment_consistency.csv"), row.names = FALSE)
+utils::write.csv(temporal_ordering_audit, file.path(step_dirs[["step00"]], "diagnostic_temporal_ordering_assumptions.csv"), row.names = FALSE)
 utils::write.csv(lt_qc, file.path(step_dirs[["step00"]], "lt_nonmissing_counts_by_day.csv"), row.names = FALSE)
 utils::write.csv(lt_complete_tab, file.path(step_dirs[["step00"]], "lt_complete_table.csv"), row.names = FALSE)
 utils::write.csv(censoring_summary, file.path(step_dirs[["step00"]], "censoring_and_daily_event_summary.csv"), row.names = FALSE)
@@ -1009,6 +1185,21 @@ utils::write.csv(figure3_sum, file.path(step_dirs[["step02"]], "figure3_daywise_
 
 utils::write.csv(table3, file.path(step_dirs[["step03"]], "table3_main_gformula_estimates.csv"), row.names = FALSE)
 utils::write.csv(table4, file.path(step_dirs[["step04"]], "table4_sensitivity_analyses.csv"), row.names = FALSE)
+utils::write.csv(sensitivity_support, file.path(step_dirs[["step04"]], "diagnostic_sensitivity_support.csv"), row.names = FALSE)
+if (nrow(sensitivity_mi_details) > 0L) {
+  utils::write.csv(
+    sensitivity_mi_details,
+    file.path(step_dirs[["step04"]], "diagnostic_mi_imputation_estimates.csv"),
+    row.names = FALSE
+  )
+}
+if (nrow(sensitivity_mi_events) > 0L) {
+  utils::write.csv(
+    sensitivity_mi_events,
+    file.path(step_dirs[["step04"]], "diagnostic_mi_logged_events.csv"),
+    row.names = FALSE
+  )
+}
 utils::write.csv(mc_stability, file.path(step_dirs[["step03"]], "diagnostic_monte_carlo_stability.csv"), row.names = FALSE)
 
 notes <- c(
@@ -1016,17 +1207,23 @@ notes <- c(
   "",
   "Pipeline structure:",
   "- step00_data_prep: analysis-ready long and wide panels, source audit, missingness checks",
+  "- step00_data_prep/diagnostic_excel_import_warnings.csv: captured spreadsheet type-coercion warnings for source-data review",
+  "- step00_data_prep/diagnostic_baseline_treatment_consistency.csv: patient-level comparison of the symptom-day baseline treatment field with Day 0 M0",
+  "- step00_data_prep/diagnostic_temporal_ordering_assumptions.csv: explicit audit of whether L_t is known to precede M_t",
   "- step01_baseline: baseline Table 1 style summary by baseline carbapenem resistance",
   "- step02_longitudinal_summary: Day 0-3 observed treatment, severity, and O_t information summary",
   "- step03_main_gformula: primary interventional direct and indirect effect estimates",
   paste0("- Primary and sensitivity Monte Carlo draws per regime: ", main_nsim),
-  "- step04_sensitivity: alternative L_t definition, no-lag mediator history, and Day 0-1 early-treatment window",
+  "- step04_sensitivity: measurement, treatment-process, target-population, centre-structure, positivity, and missing-data analyses",
+  paste0("- Multiple-imputation sensitivity enabled: ", run_mi, "; m=", mi_m, "; Monte Carlo draws per imputation=", mi_nsim),
+  "- The multiple-imputation row is a point-estimate robustness summary averaged across imputations; it is not a Rubin-pooled confidence interval.",
+  "- Any automatic predictor exclusions from mice are retained in diagnostic_mi_logged_events.csv.",
   "- step03_main_gformula/diagnostic_monte_carlo_stability.csv: repeated-seed Monte Carlo stability check for the primary specification",
   "- step05_hte: reserved for future heterogeneity analyses; no results are generated",
   "",
   "Variable system used in this v3 draft:",
   "- R_t = alive and under follow-up at the beginning of day t; the present extract has R_t=1 for every Day 0-3 record.",
-  "- V = baseline covariates: age, sex, Charlson, country, site, ICU type, and bacteria group",
+  "- V = baseline covariates: age, sex, Charlson, site, ICU type, and bacteria group; country replaces site in a centre-structure sensitivity analysis",
   "- A = baseline carbapenem resistance",
   "- L_t = daily clinical state; primary model uses Day 0 SOFA plus Day 1-3 pragmatic LT score",
   "- O_t = binary proxy for microbiology information available before each daily treatment decision",
@@ -1036,6 +1233,7 @@ notes <- c(
   "Interpretation note:",
   "- The main model still matches your current binary A = 0/1 workflow.",
   "- The O_t proxy is not included in the primary or sensitivity models because it is incomplete and its same-day availability requires timestamp validation.",
+  "- The supplied files do not establish intra-day ordering between daily-extrema L_t and daily treatment M_t. The primary analysis therefore depends on an unverified same-day ordering assumption; a prior-day-severity sensitivity analysis is reported.",
   "- Heterogeneity analyses are not run in this version.",
   "",
   "Inputs:",

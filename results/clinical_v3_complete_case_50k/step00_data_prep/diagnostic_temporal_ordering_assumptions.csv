@@ -1,0 +1,6 @@
+"component","operational_definition","timestamp_evidence","interpretation"
+"L0","Baseline SOFA","Baseline/day index only","Usable as baseline state"
+"L1-L3","Daily extrema/support: maximum temperature and heart rate; minimum MAP and SpO2/FiO2; any inotrope or mechanical ventilation","Calendar day only; no intra-day measurement time in supplied analysis file","May include physiology occurring after treatment initiation"
+"M0-M3","Any appropriate active treatment during the calendar day","Calendar day only; no intra-day administration time in supplied analysis file","Cannot establish whether treatment preceded daily extrema"
+"Primary ordering","Same-day L_t predicts M_t","Not verified","Potential same-day reverse causation/post-treatment adjustment; primary analysis is conditional on this assumption"
+"Sensitivity ordering","Prior-day L_(t-1) predicts M_t for t>=1","Day-level ordering is explicit but remains an approximation","Robustness analysis that avoids conditioning M_t on same-day daily extrema"

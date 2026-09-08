@@ -20,5 +20,5 @@
 "Categorical","Baseline bacteria group","Klebsiella","114 (24.8%)","73 (22.9%)","41 (29.1%)"
 "Categorical","Baseline bacteria group","Other","59 (12.8%)","58 (18.2%)","1 (0.7%)"
 "Categorical","Baseline bacteria group","Pseudomonas","57 (12.4%)","42 (13.2%)","15 (10.6%)"
-"Binary","Appropriate antibiotics on symptom day","Yes","0 (0.0%)","0 (0.0%)","0 (0.0%)"
+"Binary","Appropriate antibiotics on symptom day","Yes","247 (53.7%)","191 (59.9%)","56 (39.7%)"
 "Binary","60-day mortality","Yes","169 (36.7%)","101 (31.7%)","68 (48.2%)"
