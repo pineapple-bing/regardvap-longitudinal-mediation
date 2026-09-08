@@ -394,14 +394,30 @@ binary_any_micro_info <- function(prior_state, prior_respiratory_state, sampled_
   carb_r_lag1 <- clean_binary01(carb_r_lag1)
   baseline_index_n <- clean_num(baseline_index_n)
 
-  has_prior_state <- ifelse(
-    !is.na(prior_state) | !is.na(prior_respiratory_state) | sampled_lag1 == 1 | carb_r_lag1 == 1,
-    1,
-    0
+  # Treat missing binary source fields as absence of evidence, not as an
+  # unknown logical value. Otherwise FALSE | NA propagates NA, leaving
+  # O_info with only 1/NA values and making mean(O_info, na.rm = TRUE) equal 1.
+  has_prior_state <- as.integer(
+    !is.na(prior_state) |
+      !is.na(prior_respiratory_state) |
+      (!is.na(sampled_lag1) & sampled_lag1 == 1) |
+      (!is.na(carb_r_lag1) & carb_r_lag1 == 1)
   )
   has_baseline_index <- ifelse(!is.na(baseline_index_n) & baseline_index_n > 0, 1, 0)
   ifelse(day == 0, has_baseline_index, has_prior_state)
 }
+
+stopifnot(identical(
+  binary_any_micro_info(
+    prior_state = c(NA, "sampled_positive"),
+    prior_respiratory_state = c(NA, NA),
+    sampled_lag1 = c(0, 1),
+    carb_r_lag1 = c(NA, NA),
+    baseline_index_n = c(1, 1),
+    day = c(1, 1)
+  ),
+  c(0L, 1L)
+))
 
 if (!file.exists(day03_path)) stop("Missing file: ", day03_path)
 if (!file.exists(day60_path)) stop("Missing file: ", day60_path)
@@ -782,11 +798,25 @@ draw_figure3_panels <- function(sum_df) {
 
 make_figure3 <- function(panel_df, png_path, svg_path = NULL) {
   use <- panel_df[panel_df$day %in% 0:3, , drop = FALSE]
-  sum_df <- stats::aggregate(
-    cbind(M = use$M, L_main = use$L_main, O_info = use$O_info) ~ A + day,
-    data = use,
-    FUN = function(x) mean(x, na.rm = TRUE)
-  )
+  mean_or_na <- function(x) {
+    if (all(is.na(x))) NA_real_ else mean(x, na.rm = TRUE)
+  }
+  # Summarise each process on its own observed denominator. A multivariate
+  # formula in aggregate() first applies joint complete-case deletion and can
+  # silently restrict treatment and severity summaries to records with O_info.
+  groups <- split(use, interaction(use$A, use$day, drop = TRUE))
+  sum_df <- do.call(rbind, lapply(groups, function(d) {
+    data.frame(
+      A = d$A[1],
+      day = d$day[1],
+      M = mean_or_na(d$M),
+      L_main = mean_or_na(d$L_main),
+      O_info = mean_or_na(d$O_info),
+      stringsAsFactors = FALSE
+    )
+  }))
+  sum_df <- sum_df[order(sum_df$A, sum_df$day), , drop = FALSE]
+  rownames(sum_df) <- NULL
   sum_df$group <- ifelse(sum_df$A == 1, "Resistant", "Non-resistant")
 
   grDevices::png(png_path, width = 1800, height = 600, res = 150)

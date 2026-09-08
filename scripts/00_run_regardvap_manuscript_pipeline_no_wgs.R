@@ -514,8 +514,8 @@ make_pretty_robustness_table <- function(
     }
   }
 
-  df$Specification <- if (all(c("sensitivity_id", "description") %in% names(df))) {
-    paste0(df$sensitivity_id, ": ", df$description)
+  df$Specification <- if ("description" %in% names(df)) {
+    df$description
   } else {
     ifelse(
       df$include_ot,

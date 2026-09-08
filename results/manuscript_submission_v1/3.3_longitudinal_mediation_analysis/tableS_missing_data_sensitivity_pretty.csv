@@ -1,2 +1,2 @@
 "Specification","Family","Primary estimand retained","Population","Status","Complete cases","Total effect (95% CI)","Indirect effect (95% CI)","Direct effect (95% CI)"
-"S15_multiple_imputation_severity: Predictive mean matching for missing L1-L3 (m=10)","missing_data","Yes","all","ok",460,"0.099 (-0.024 to 0.224)","-0.001 (-0.022 to 0.018)","0.100 (-0.016 to 0.223)"
+"Predictive mean matching for missing L1-L3 (m=10)","missing_data","Yes","all","ok",460,"0.099 (-0.024 to 0.224)","-0.001 (-0.022 to 0.018)","0.100 (-0.016 to 0.223)"
