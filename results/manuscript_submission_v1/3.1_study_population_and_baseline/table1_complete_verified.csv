@@ -1,0 +1,33 @@
+"section","variable","row_type","overall","Non-resistant (A=0)","Carbapenem-resistant (A=1)","Max pairwise SMD"
+"Header","Patients, n","n","460","319","141",
+"Demographics and comorbidity","Demographics and comorbidity","section",,,,
+,"Age, years, median [IQR]","continuous","63.6 [50.7, 74.1]","62.9 [50.0, 74.6]","65.4 [53.0, 73.5]","0.01"
+,"Male sex, n (%)","binary","279 (60.7%)","194 (60.8%)","85 (60.3%)","0.01"
+,"Charlson comorbidity index, median [IQR]","continuous","3.0 [1.0, 5.0]","3.0 [1.0, 5.0]","3.0 [1.0, 5.0]","0.02"
+"Healthcare setting and pre-VAP course","Healthcare setting and pre-VAP course","section",,,,
+,"Country: Singapore","binary","50 (10.9%)","45 (14.1%)","5 (3.5%)","0.38"
+,"Country: Thailand","binary","371 (80.7%)","248 (77.7%)","123 (87.2%)","0.25"
+,"Country: Nepal","binary","39 (8.5%)","26 (8.2%)","13 (9.2%)","0.04"
+,"ICU type: Medical ICU","binary","144 (31.3%)","96 (30.1%)","48 (34.0%)","0.08"
+,"ICU type: Surgical ICU","binary","316 (68.7%)","223 (69.9%)","93 (66.0%)","0.08"
+,"Days intubated before VAP onset, median [IQR]","continuous","14.0 [10.0, 22.0]","13.0 [10.0, 20.0]","18.0 [14.0, 27.0]","0.28"
+,"Indication for intubation: Respiratory failure","binary","195 (42.4%)","128 (40.1%)","67 (47.5%)","0.15"
+,"Indication for intubation: Neurological failure","binary","119 (25.9%)","82 (25.7%)","37 (26.2%)","0.01"
+,"Indication for intubation: Trauma/airway obstruction","binary","84 (18.3%)","57 (17.9%)","27 (19.1%)","0.03"
+,"Indication for intubation: Post-operative care","binary","42 (9.1%)","37 (11.6%)","5 (3.5%)","0.31"
+,"Indication for intubation: Cardiovascular failure","binary","11 (2.4%)","9 (2.8%)","2 (1.4%)","0.10"
+,"Indication for intubation: Metabolic acidosis","binary","9 (2.0%)","6 (1.9%)","3 (2.1%)","0.02"
+"Clinical severity at VAP onset","Clinical severity at VAP onset","section",,,,
+,"SOFA score, median [IQR]","continuous","6.0 [4.0, 8.0]","6.0 [4.0, 8.0]","6.0 [4.0, 8.0]","0.05"
+,"Lowest mean arterial pressure, mmHg, median [IQR]","continuous","72.0 [65.0, 79.0]","72.0 [65.0, 79.0]","70.6 [65.0, 79.0]","0.01"
+,"Maximum heart rate, beats/min, median [IQR]","continuous","120.0 [108.0, 130.0]","118.0 [106.0, 128.5]","122.0 [110.0, 132.0]","0.18"
+,"SpO2/FiO2 ratio, median [IQR]","continuous","230.0 [194.8, 247.5]","227.5 [192.0, 247.5]","235.0 [196.0, 245.0]","0.00"
+"Index-culture characteristics","Index-culture characteristics","section",,,,
+,"Polymicrobial index culture, n (%)","binary","114 (24.8%)","53 (16.6%)","61 (43.3%)","0.61"
+,"Any Acinetobacter spp., n (%)","binary","128 (27.8%)","23 (7.2%)","105 (74.5%)","1.88"
+,"Any Pseudomonas spp., n (%)","binary","96 (20.9%)","59 (18.5%)","37 (26.2%)","0.19"
+,"Any Enterobacterales, n (%)","binary","168 (36.5%)","118 (37.0%)","50 (35.5%)","0.03"
+,"Any Staphylococcus aureus, n (%)","binary","18 (3.9%)","15 (4.7%)","3 (2.1%)","0.14"
+,"Culture-negative, n (%)","binary","130 (28.3%)","129 (40.4%)","1 (0.7%)","1.13"
+"Outcome","Outcome","section",,,,
+,"60-day mortality, n (%)","binary","169 (36.7%)","101 (31.7%)","68 (48.2%)","0.34"
