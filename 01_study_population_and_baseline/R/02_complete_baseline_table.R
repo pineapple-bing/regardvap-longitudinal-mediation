@@ -211,6 +211,7 @@ if (requireNamespace("gt", quietly = TRUE)) {
     gt::tab_style(style = gt::cell_fill(color = "#0D7182"), locations = gt::cells_body(rows = section_rows)) |>
     gt::tab_style(style = gt::cell_text(color = "white", weight = "bold"), locations = gt::cells_body(rows = section_rows)) |>
     gt::tab_style(style = gt::cell_fill(color = "#F9EEE9"), locations = gt::cells_body(rows = which(table1$variable == "60-day mortality, n (%)"))) |>
+    gt::sub_missing(columns = gt::everything(), missing_text = "") |>
     gt::tab_source_note("SMD is the absolute standardized difference for A=0 versus A=1; it is descriptive and is not a p value.") |>
     gt::tab_options(table.font.size = gt::px(12), data_row.padding = gt::px(3))
   gt::gtsave(gt_tab, file.path(output_dir, "table1_baseline_presentation.html"))
