@@ -17,7 +17,7 @@
 #   table1_complete_verified.csv      complete publication-ready summary
 #   table1_patient_level_verified.csv exact participant-level source data
 #   table1_cohort_audit.csv           cohort and group-count audit
-#   table1_complete_verified.html     formatted table, if package gt is installed
+#   table1_baseline_presentation.html formatted baseline table, if gt is installed
 
 args <- commandArgs(trailingOnly = TRUE)
 if (length(args) != 2L) {
@@ -213,7 +213,7 @@ if (requireNamespace("gt", quietly = TRUE)) {
     gt::tab_style(style = gt::cell_fill(color = "#F9EEE9"), locations = gt::cells_body(rows = which(table1$variable == "60-day mortality, n (%)"))) |>
     gt::tab_source_note("SMD is the absolute standardized difference for A=0 versus A=1; it is descriptive and is not a p value.") |>
     gt::tab_options(table.font.size = gt::px(12), data_row.padding = gt::px(3))
-  gt::gtsave(gt_tab, file.path(output_dir, "table1_complete_verified.html"))
+  gt::gtsave(gt_tab, file.path(output_dir, "table1_baseline_presentation.html"))
 }
 
 cat("Verified complete baseline Table 1 written to: ", normalizePath(output_dir), "\n", sep = "")
