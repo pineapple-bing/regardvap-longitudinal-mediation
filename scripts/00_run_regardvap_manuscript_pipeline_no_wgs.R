@@ -778,13 +778,23 @@ write_section_readme(
 )
 
 # 3.4
+for (hte_file in c(
+  "table_hte_point_estimates.csv", "table_hte_subgroup_te_ci.csv",
+  "table_hte_difference_ci.csv", "diagnostic_hte_exposure_support.csv",
+  "diagnostic_hte_bootstrap_status.csv"
+)) {
+  hte_src <- file.path(analysis_core_dir, "step05_hte", hte_file)
+  if (file.exists(hte_src)) copy_required(hte_src, file.path(section_dirs[["sec34"]], hte_file))
+}
 write_section_readme(
   file.path(section_dirs[["sec34"]], "README_3.4.md"),
   c(
     "# 3.4 Heterogeneity of treatment effect",
     "",
-    "- Reserved for future work.",
-    "- No HTE analyses are run or reported in this version."
+    "- Exploratory HTE is produced only when REGARDVAP_RUN_HTE=true.",
+    "- table_hte_difference_ci.csv contains the patient-bootstrap interval for the contrast between levels; it is the interaction test.",
+    "- diagnostic_hte_exposure_support.csv must be reviewed before interpretation.",
+    "- Results remain conditional on validation of the index-culture/AMR exposure definition."
   )
 )
 

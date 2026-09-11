@@ -238,7 +238,17 @@ The bootstrap outputs are written to `step03_main_gformula/`.
 
 ### Heterogeneity of treatment effect
 
-The directory `04_heterogeneity_of_treatment_effect/` is reserved for future work. No HTE analysis is run by the current workflow.
+Exploratory HTE analyses are implemented for baseline ICU type and baseline
+severity (SOFA >=6 versus <6). Set `REGARDVAP_RUN_HTE=true` to run them. The
+workflow reports the per-level g-formula estimates, a patient-level bootstrap
+confidence interval for the *difference* between levels, and an exposure-support
+diagnostic for every level. The difference interval, rather than visual overlap
+of separately calculated subgroup intervals, is the effect-modification test.
+
+These analyses are exploratory and are disabled by default. They must not be
+interpreted until the AMR exposure has been validated against index-culture and
+susceptibility source records; having both observed exposure levels in a
+subgroup is necessary but does not by itself establish conditional positivity.
 
 ---
 

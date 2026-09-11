@@ -976,7 +976,7 @@ run_gformula_legacy <- function(analysis_df, mediator_history = c("lagged", "non
   )
 }
 
-run_hte_gformula <- function(analysis_df, modifier_var, modifier_label, levels_keep = NULL, min_n = 40, min_complete = 60) {
+run_hte_gformula_legacy <- function(analysis_df, modifier_var, modifier_label, levels_keep = NULL, min_n = 40, min_complete = 60) {
   df <- analysis_df
   x <- df[[modifier_var]]
   if (is.null(levels_keep)) {
@@ -1124,6 +1124,7 @@ lt_complete_tab <- as.data.frame(with(severity, table(day, lt_complete, useNA = 
 source(file.path(module_dir, "R", "04_gformula_engine.R"))
 source(file.path(module_dir, "R", "05_sensitivity_runner.R"))
 source(file.path(module_dir, "R", "06_monte_carlo_diagnostics.R"))
+source(file.path(module_dir, "R", "08_hte_runner.R"))
 
 main_nsim <- suppressWarnings(as.integer(Sys.getenv("REGARDVAP_NSIM", unset = "50000")))
 if (is.na(main_nsim) || main_nsim < 10000L) {
@@ -1199,6 +1200,34 @@ if (!is.na(bootstrap_n) && bootstrap_n > 0L) {
   )
 }
 utils::write.csv(bootstrap_summary, file.path(step_dirs[["step03"]], "diagnostic_bootstrap_status.csv"), row.names = FALSE)
+
+# HTE is deliberately opt-in. It is exploratory until the AMR exposure has
+# been validated against the index-culture and susceptibility source records.
+run_hte <- tolower(Sys.getenv("REGARDVAP_RUN_HTE", unset = "false")) %in% c("1", "true", "yes")
+hte_specifications <- make_hte_specifications()
+hte_support <- hte_exposure_support(analysis, hte_specifications)
+utils::write.csv(hte_support, file.path(step_dirs[["step05"]], "diagnostic_hte_exposure_support.csv"), row.names = FALSE)
+if (run_hte) {
+  hte_point_estimates <- run_all_hte(analysis, hte_specifications, nsim = main_nsim)
+  utils::write.csv(hte_point_estimates, file.path(step_dirs[["step05"]], "table_hte_point_estimates.csv"), row.names = FALSE)
+  if (!is.na(bootstrap_n) && bootstrap_n > 0L) {
+    hte_boot_n <- suppressWarnings(as.integer(Sys.getenv("REGARDVAP_HTE_N_BOOT", unset = as.character(bootstrap_n))))
+    if (is.na(hte_boot_n) || hte_boot_n < 1L) hte_boot_n <- bootstrap_n
+    hte_boot_nsim <- suppressWarnings(as.integer(Sys.getenv("REGARDVAP_HTE_BOOT_NSIM", unset = as.character(bootstrap_nsim))))
+    if (is.na(hte_boot_nsim) || hte_boot_nsim < 1000L) hte_boot_nsim <- 10000L
+    hte_draws <- bootstrap_hte_difference(
+      analysis, hte_specifications, B = hte_boot_n, nsim = hte_boot_nsim,
+      checkpoint_path = file.path(step_dirs[["step05"]], "bootstrap_hte_difference_draws.csv")
+    )
+    hte_ci <- hte_difference_percentile_ci(hte_draws, hte_specifications)
+    utils::write.csv(hte_draws, file.path(step_dirs[["step05"]], "bootstrap_hte_difference_draws.csv"), row.names = FALSE)
+    utils::write.csv(hte_ci, file.path(step_dirs[["step05"]], "table_hte_difference_ci.csv"), row.names = FALSE)
+    utils::write.csv(data.frame(
+      requested_resamples = hte_boot_n, successful_resamples = sum(hte_draws$status == "ok"),
+      failed_resamples = sum(hte_draws$status != "ok"), monte_carlo_draws_per_resample = hte_boot_nsim
+    ), file.path(step_dirs[["step05"]], "diagnostic_hte_bootstrap_status.csv"), row.names = FALSE)
+  }
+}
 
 # Use the estimand labels already carried by each specification to keep
 # like-for-like model robustness analyses separate from analyses that change
@@ -1403,7 +1432,7 @@ notes <- c(
   "- The multiple-imputation point estimate averages imputation-specific estimates; its interval repeats imputation and estimation inside each participant-level bootstrap resample.",
   "- Any automatic predictor exclusions from mice are retained in diagnostic_mi_logged_events.csv.",
   "- step03_main_gformula/diagnostic_monte_carlo_stability.csv: repeated-seed Monte Carlo stability check for the primary specification",
-  "- step05_hte: reserved for future heterogeneity analyses; no results are generated",
+  "- step05_hte: exploratory HTE module; enabled only with REGARDVAP_RUN_HTE=true and accompanied by within-level exposure-support diagnostics",
   "",
   "Variable system used in this v3 draft:",
   "- R_t = alive and under follow-up at the beginning of day t; the present extract has R_t=1 for every Day 0-3 record.",
@@ -1418,7 +1447,7 @@ notes <- c(
   "- The main model still matches your current binary A = 0/1 workflow.",
   "- The O_t proxy is not included in the primary or sensitivity models because it is incomplete and its same-day availability requires timestamp validation.",
   "- The supplied files do not establish intra-day ordering between daily-extrema L_t and daily treatment M_t. The primary analysis therefore depends on an unverified same-day ordering assumption; a prior-day-severity sensitivity analysis is reported.",
-  "- Heterogeneity analyses are not run in this version.",
+  "- HTE analyses are exploratory and require validated index-culture/AMR exposure construction before interpretation.",
   "",
   "Inputs:",
   paste0("- Day 0-3 integrated longitudinal file: ", day03_path),

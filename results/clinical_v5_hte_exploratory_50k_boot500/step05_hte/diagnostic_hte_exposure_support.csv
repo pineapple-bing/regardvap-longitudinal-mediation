@@ -1,0 +1,5 @@
+"modifier","level","n_input","n_complete","n_complete_A0","n_complete_A1","support_status","propensity_min","propensity_p05","propensity_median","propensity_p95","propensity_max","n_outside_05_95","exposure_model_type"
+"ICU type","Medical ICU",144,140,92,48,"review_required",0.0495616984957092,0.0707770791714239,0.360554947739471,0.715128190031937,0.731600155968675,1,"ridge_binomial_glmnet"
+"ICU type","Surgical ICU",316,264,188,76,"review_required",0.0073517845910437,0.0216701675187807,0.28745477283511,0.692232676691214,0.845562461868765,30,"ridge_binomial_glmnet"
+"Baseline severity (SOFA>=6 vs <6)","SOFA<6",215,187,139,48,"review_required",0.0116053232888321,0.0411592927296083,0.2371678354154,0.636374762779734,0.778618353527055,12,"ridge_binomial_glmnet"
+"Baseline severity (SOFA>=6 vs <6)","SOFA>=6",245,217,141,76,"review_required",0.0237362543370889,0.079666328392605,0.413632378099661,0.663095095214751,0.822137838224126,6,"ridge_binomial_glmnet"
